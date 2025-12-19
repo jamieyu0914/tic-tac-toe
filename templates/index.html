@@ -22,10 +22,47 @@
 </head>
 <body>
     {% include 'navbar.html' %}
-    <div style="max-width: 500px; margin: 60px auto; text-align: center;">
-        <h2>歡迎，{{ user }}！</h2>
-        <p>這是井字遊戲首頁。</p>
-        <a href="/game" style="display:inline-block;margin:20px 0 0 0;padding:12px 32px;font-size:1.2em;background:#4caf50;color:#fff;text-decoration:none;border-radius:6px;">進入遊戲</a>
+    <div class="bbs-ansi">
+        <pre class="ansi-art">
+            {% if theme == 'christmas' %}
+                {% include 'theme/christmas.html' %}
+            {% else %}
+                {% include 'theme/newyear.html' %}
+            {% endif %}
+        </pre>
+        <div class="ansi-btn-area">
+            <a href="/game" class="ansi-btn">進入遊戲</a>
+        </div>
     </div>
+    <style>
+    .ansi-art {
+        font-size: 1.2em;
+        line-height: 1.3;
+        margin-bottom: 24px;
+        white-space: pre;
+        text-align: left;
+        display: inline-block;
+    }
+    .ansi-btn-area {
+        margin-top: 12px;
+    }
+    .ansi-btn {
+        display: inline-block;
+        background: #222;
+        color: #0f0;
+        border: 1px solid #0f0;
+        border-radius: 4px;
+        padding: 10px 32px;
+        font-size: 1.1em;
+        font-family: inherit;
+        text-decoration: none;
+        margin: 0 8px;
+        transition: background 0.2s, color 0.2s;
+    }
+    .ansi-btn:hover {
+        background: #0f0;
+        color: #000;
+    }
+    </style>
 </body>
 </html>
