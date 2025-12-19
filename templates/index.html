@@ -21,73 +21,11 @@
     </style>
 </head>
 <body>
-    <h1>Tic-Tac-Toe</h1>
-    <div class="container">
-        <div class="game-area">
-            <div class="info">
-                {% if winner %}
-                    {% if winner == 'Draw' %}
-                        <b>It's a Draw!</b>
-                    {% else %}
-                        <b>Winner: {{ winner }}</b>
-                    {% endif %}
-                {% else %}
-                    Turn: <b>{{ turn }}</b>
-                {% endif %}
-            </div>
-            <form method="post">
-                <div class="board">
-                    {% for i in range(9) %}
-                        <button class="cell" name="cell" value="{{ i }}" {% if board[i] or winner %}disabled{% endif %}>
-                            {{ board[i] if board[i] else '' }}
-                        </button>
-                    {% endfor %}
-                </div>
-            </form>
-            <form action="{{ url_for('reset') }}" method="get">
-                <button class="reset-btn" type="submit">Restart Game</button>
-            </form>
-        </div>
-        <div class="chatroom">
-            <h2>聊天室</h2>
-            <div id="chat-messages" class="chat-messages"></div>
-            <div class="chat-input-area">
-                <input id="chat-input" class="chat-input" type="text" placeholder="輸入訊息..." autocomplete="off" />
-                <button id="chat-send" class="chat-send">送出</button>
-            </div>
-        </div>
+    {% include 'navbar.html' %}
+    <div style="max-width: 500px; margin: 60px auto; text-align: center;">
+        <h2>歡迎，{{ user }}！</h2>
+        <p>這是井字遊戲首頁。</p>
+        <a href="/game" style="display:inline-block;margin:20px 0 0 0;padding:12px 32px;font-size:1.2em;background:#4caf50;color:#fff;text-decoration:none;border-radius:6px;">進入遊戲</a>
     </div>
-    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
-    <script>
-        const socket = io();
-        const chatMessages = document.getElementById('chat-messages');
-        const chatInput = document.getElementById('chat-input');
-        const chatSend = document.getElementById('chat-send');
-
-        function appendMessage(msg) {
-            const div = document.createElement('div');
-            div.textContent = msg;
-            chatMessages.appendChild(div);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        }
-
-        chatSend.onclick = function(e) {
-            e.preventDefault();
-            const msg = chatInput.value.trim();
-            if (msg) {
-                socket.emit('chat message', msg);
-                chatInput.value = '';
-            }
-        };
-        chatInput.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter') {
-                chatSend.click();
-            }
-        });
-
-        socket.on('chat message', function(msg) {
-            appendMessage(msg);
-        });
-    </script>
 </body>
 </html>

@@ -32,7 +32,7 @@ def login():
 def home():
     if 'user' not in session:
         return redirect(url_for('login'))
-    return f'Hello, {session["user"]}! <a href="{url_for("logout")}">登出</a> | <a href="{url_for("game")}">進入遊戲</a>'
+    return render_template('index.html', user=session['user'])
 
 # 遊戲頁，需登入
 @app.route('/game', methods=['GET', 'POST'])
@@ -58,7 +58,7 @@ def game():
             session['board'] = board
         return redirect(url_for('game'))
 
-    return render_template('index.html', board=board, turn=turn, winner=winner)
+    return render_template('game.html', board=board, turn=turn, winner=winner)
 
 
 # 重置遊戲
@@ -75,8 +75,6 @@ def logout():
     session.pop('user', None)
     return redirect(url_for('login'))
 
-
-## 聊天室事件已移至 chat_events.py
 
 # Run the app (optional, for running directly)
 if __name__ == '__main__':
