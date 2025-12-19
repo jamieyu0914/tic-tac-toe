@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Tic-Tac-Toe</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; }
+        .board { display: grid; grid-template-columns: repeat(3, 80px); grid-gap: 5px; margin: 30px auto; width: 255px; }
+        .cell { width: 80px; height: 80px; font-size: 2.5em; cursor: pointer; background: #f0f0f0; border: 2px solid #333; }
+        .cell:disabled { background: #ddd; cursor: not-allowed; }
+        .info { margin: 20px; font-size: 1.2em; }
+        .reset-btn { margin-top: 20px; padding: 8px 20px; font-size: 1em; }
+    </style>
+</head>
+<body>
+    <h1>Tic-Tac-Toe</h1>
+    <div class="info">
+        {% if winner %}
+            {% if winner == 'Draw' %}
+                <b>It's a Draw!</b>
+            {% else %}
+                <b>Winner: {{ winner }}</b>
+            {% endif %}
+        {% else %}
+            Turn: <b>{{ turn }}</b>
+        {% endif %}
+    </div>
+    <form method="post">
+        <div class="board">
+            {% for i in range(9) %}
+                <button class="cell" name="cell" value="{{ i }}" {% if board[i] or winner %}disabled{% endif %}>
+                    {{ board[i] if board[i] else '' }}
+                </button>
+            {% endfor %}
+        </div>
+    </form>
+    <form action="{{ url_for('reset') }}" method="get">
+        <button class="reset-btn" type="submit">Restart Game</button>
+    </form>
+</body>
+</html>
