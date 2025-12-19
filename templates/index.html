@@ -5,37 +5,89 @@
     <title>Tic-Tac-Toe</title>
     <style>
         body { font-family: Arial, sans-serif; text-align: center; }
-        .board { display: grid; grid-template-columns: repeat(3, 80px); grid-gap: 5px; margin: 30px auto; width: 255px; }
+        .container { display: flex; justify-content: center; align-items: flex-start; margin-top: 30px; }
+        .game-area { flex: 0 0 300px; }
+        .board { display: grid; grid-template-columns: repeat(3, 80px); grid-gap: 5px; margin: 0 auto 20px auto; width: 255px; }
         .cell { width: 80px; height: 80px; font-size: 2.5em; cursor: pointer; background: #f0f0f0; border: 2px solid #333; }
         .cell:disabled { background: #ddd; cursor: not-allowed; }
         .info { margin: 20px; font-size: 1.2em; }
         .reset-btn { margin-top: 20px; padding: 8px 20px; font-size: 1em; }
+        .chatroom { flex: 0 0 320px; margin-left: 40px; background: #fafafa; border: 1px solid #ccc; border-radius: 8px; padding: 16px; box-shadow: 0 2px 8px #eee; }
+        .chat-messages { height: 320px; overflow-y: auto; border: 1px solid #ddd; background: #fff; padding: 8px; margin-bottom: 12px; border-radius: 4px; text-align: left; }
+        .chat-input-area { display: flex; }
+        .chat-input { flex: 1; padding: 6px; font-size: 1em; border-radius: 4px; border: 1px solid #ccc; }
+        .chat-send { margin-left: 8px; padding: 6px 16px; font-size: 1em; border-radius: 4px; border: none; background: #4caf50; color: #fff; cursor: pointer; }
+        .chat-send:disabled { background: #aaa; cursor: not-allowed; }
     </style>
 </head>
 <body>
     <h1>Tic-Tac-Toe</h1>
-    <div class="info">
-        {% if winner %}
-            {% if winner == 'Draw' %}
-                <b>It's a Draw!</b>
-            {% else %}
-                <b>Winner: {{ winner }}</b>
-            {% endif %}
-        {% else %}
-            Turn: <b>{{ turn }}</b>
-        {% endif %}
-    </div>
-    <form method="post">
-        <div class="board">
-            {% for i in range(9) %}
-                <button class="cell" name="cell" value="{{ i }}" {% if board[i] or winner %}disabled{% endif %}>
-                    {{ board[i] if board[i] else '' }}
-                </button>
-            {% endfor %}
+    <div class="container">
+        <div class="game-area">
+            <div class="info">
+                {% if winner %}
+                    {% if winner == 'Draw' %}
+                        <b>It's a Draw!</b>
+                    {% else %}
+                        <b>Winner: {{ winner }}</b>
+                    {% endif %}
+                {% else %}
+                    Turn: <b>{{ turn }}</b>
+                {% endif %}
+            </div>
+            <form method="post">
+                <div class="board">
+                    {% for i in range(9) %}
+                        <button class="cell" name="cell" value="{{ i }}" {% if board[i] or winner %}disabled{% endif %}>
+                            {{ board[i] if board[i] else '' }}
+                        </button>
+                    {% endfor %}
+                </div>
+            </form>
+            <form action="{{ url_for('reset') }}" method="get">
+                <button class="reset-btn" type="submit">Restart Game</button>
+            </form>
         </div>
-    </form>
-    <form action="{{ url_for('reset') }}" method="get">
-        <button class="reset-btn" type="submit">Restart Game</button>
-    </form>
+        <div class="chatroom">
+            <h2>聊天室</h2>
+            <div id="chat-messages" class="chat-messages"></div>
+            <div class="chat-input-area">
+                <input id="chat-input" class="chat-input" type="text" placeholder="輸入訊息..." autocomplete="off" />
+                <button id="chat-send" class="chat-send">送出</button>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script>
+        const socket = io();
+        const chatMessages = document.getElementById('chat-messages');
+        const chatInput = document.getElementById('chat-input');
+        const chatSend = document.getElementById('chat-send');
+
+        function appendMessage(msg) {
+            const div = document.createElement('div');
+            div.textContent = msg;
+            chatMessages.appendChild(div);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        chatSend.onclick = function(e) {
+            e.preventDefault();
+            const msg = chatInput.value.trim();
+            if (msg) {
+                socket.emit('chat message', msg);
+                chatInput.value = '';
+            }
+        };
+        chatInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                chatSend.click();
+            }
+        });
+
+        socket.on('chat message', function(msg) {
+            appendMessage(msg);
+        });
+    </script>
 </body>
 </html>

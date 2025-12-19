@@ -1,11 +1,15 @@
-
 from flask import Flask, render_template, request, redirect, url_for, session
+from flask_socketio import SocketIO
+
 from tic_tac_toe import check_winner
+from chatroom import register_chat_events
 
 # Create an instance of the Flask class
 
 app = Flask(__name__)
 app.secret_key = 'tic-tac-toe-login-secret'
+socketio = SocketIO(app)
+register_chat_events(socketio)
 
 
 # 登入頁
@@ -71,7 +75,10 @@ def logout():
     session.pop('user', None)
     return redirect(url_for('login'))
 
+
+## 聊天室事件已移至 chat_events.py
+
 # Run the app (optional, for running directly)
 if __name__ == '__main__':
-    app.run(debug=True) # debug=True for auto-reloading
+    socketio.run(app, debug=True)
 
