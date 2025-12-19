@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <title>登入 - Tic-Tac-Toe</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f7f7f7; }
+        .login-container { width: 320px; margin: 100px auto; background: #fff; padding: 30px 25px; border-radius: 8px; box-shadow: 0 2px 8px #ccc; }
+        h2 { margin-bottom: 20px; }
+        input[type=text], input[type=password] { width: 100%; padding: 10px; margin: 10px 0 20px 0; border: 1px solid #ccc; border-radius: 4px; }
+        button { width: 100%; padding: 10px; background: #007bff; color: #fff; border: none; border-radius: 4px; font-size: 1em; cursor: pointer; }
+        .error { color: #d00; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <h2>登入 Tic-Tac-Toe</h2>
+        {% if error %}<div class="error">{{ error }}</div>{% endif %}
+        <form method="post">
+            <input type="text" name="username" placeholder="使用者名稱" required autofocus>
+            <input type="password" name="password" placeholder="密碼" required>
+            <button type="submit">登入</button>
+        </form>
+    </div>
+</body>
+</html>
