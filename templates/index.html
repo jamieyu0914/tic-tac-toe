@@ -22,35 +22,33 @@
 </head>
 <body>
     {% include 'navbar.html' %}
-    <div class="bbs-ansi">
-        <pre class="ansi-art">
-            {% if theme == 'christmas' %}
-                {% include 'theme/christmas.html' %}
-            {% else %}
-                {% include 'theme/newyear.html' %}
-            {% endif %}
-        </pre>
-        <div class="ansi-btn-area">
-            <a href="/game" class="ansi-btn">進入遊戲</a>
-        </div>
+    <pre class="ansi-art">
+        {% if theme == 'christmas' %}
+            {% include 'theme/christmas.html' %}
+        {% else %}
+            {% include 'theme/newyear.html' %}
+        {% endif %}
+    </pre>
+    <div class="ansi-btn-area">
+        <a href="/game" class="ansi-btn">進入遊戲</a>
     </div>
     <style>
     .ansi-art {
         font-size: 1.2em;
-        line-height: 1.3;
-        margin-bottom: 24px;
         white-space: pre;
         text-align: left;
         display: inline-block;
+        margin-top: -20px;
+        padding: 16px 24px;
     }
     .ansi-btn-area {
-        margin-top: 12px;
+        margin-top: -25px;
     }
     .ansi-btn {
         display: inline-block;
-        background: #222;
-        color: #0f0;
-        border: 1px solid #0f0;
+        background: #333;
+        color: #fff;
+        border: 1px solid #fff;
         border-radius: 4px;
         padding: 10px 32px;
         font-size: 1.1em;
@@ -58,10 +56,12 @@
         text-decoration: none;
         margin: 0 8px;
         transition: background 0.2s, color 0.2s;
+        box-shadow: 0 2px 8px #bbb;
     }
     .ansi-btn:hover {
-        background: #0f0;
-        color: #000;
+        background: #ffd600;
+        color: #333;
+        border-color: #ffd600;
     }
     </style>
 </body>
