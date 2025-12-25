@@ -12,21 +12,31 @@ app.secret_key = 'tic-tac-toe-login-secret'
 socketio = SocketIO(app)
 register_chat_events(socketio)
 
-
 # 登入頁
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     error = None
     if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
-        # 簡單帳密驗證（可改成資料庫驗證）
-        if username == 'user' and password == '1234':
-            session['user'] = username
-            return redirect(url_for('home'))
+        username = request.form.get('username', '').strip()
+        icon = request.form.get('icon')
+        shown_icons = session.get('login_icons', [])
+        if not username:
+            error = '請輸入使用者名稱'
+        elif not icon:
+            error = '請選擇一個圖示'
+        elif icon not in shown_icons:
+            error = '所選圖示無效，請重新選擇'
         else:
-            error = '帳號或密碼錯誤'
-    return render_template('login.html', error=error)
+            session.pop('login_icons', None)
+            session['user'] = username
+            session['icon'] = icon
+            return redirect(url_for('home'))
+        
+    ICON_POOL = ['😺','🐶','🐼','🚀','🎃','🌟','🐵','🐸','🦊','🐢','🐱','🐯','🦁','🐷','🦄']
+
+    icons = random.sample(ICON_POOL, 5)
+    session['login_icons'] = icons
+    return render_template('login.html', error=error, icons=icons)
 
 # 首頁，需登入
 @app.route('/')
@@ -77,6 +87,7 @@ def reset():
 @app.route('/logout')
 def logout():
     session.pop('user', None)
+    session.pop('icon', None)
     return redirect(url_for('login'))
 
 
