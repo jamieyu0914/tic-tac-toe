@@ -8,6 +8,7 @@
 
 ## 安裝依賴
 1. 執行：`pip install flask`
+2. 執行：`pip install flask_socketio`
 
 ## 啟動應用程式
 1. 在終端機啟用 venv 後

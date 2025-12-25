@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, session
+import random
 from flask_socketio import SocketIO
 
 from tic_tac_toe import check_winner
@@ -32,7 +33,10 @@ def login():
 def home():
     if 'user' not in session:
         return redirect(url_for('login'))
-    return render_template('index.html', user=session['user'])
+    theme = request.args.get('theme', '').lower()
+    if not theme:
+        theme = random.choice(['christmas', 'newyear'])
+    return render_template('index.html', user=session['user'], theme=theme)
 
 # 遊戲頁，需登入
 @app.route('/game', methods=['GET', 'POST'])
