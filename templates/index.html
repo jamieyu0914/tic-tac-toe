@@ -1,26 +1,53 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
+  <head>
+    <meta charset="UTF-8" />
     <title>Tic-Tac-Toe</title>
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; }
-        .container { display: flex; justify-content: center; align-items: flex-start; margin-top: 30px; }
-        .game-area { flex: 0 0 300px; }
-        .board { display: grid; grid-template-columns: repeat(3, 80px); grid-gap: 5px; margin: 0 auto 20px auto; width: 255px; }
-        .cell { width: 80px; height: 80px; font-size: 2.5em; cursor: pointer; background: #f0f0f0; border: 2px solid #333; }
-        .cell:disabled { background: #ddd; cursor: not-allowed; }
-        .info { margin: 20px; font-size: 1.2em; }
-        .reset-btn { margin-top: 20px; padding: 8px 20px; font-size: 1em; }
-        .chatroom { flex: 0 0 320px; margin-left: 40px; background: #fafafa; border: 1px solid #ccc; border-radius: 8px; padding: 16px; box-shadow: 0 2px 8px #eee; }
-        .chat-messages { height: 320px; overflow-y: auto; border: 1px solid #ddd; background: #fff; padding: 8px; margin-bottom: 12px; border-radius: 4px; text-align: left; }
-        .chat-input-area { display: flex; }
-        .chat-input { flex: 1; padding: 6px; font-size: 1em; border-radius: 4px; border: 1px solid #ccc; }
-        .chat-send { margin-left: 8px; padding: 6px 16px; font-size: 1em; border-radius: 4px; border: none; background: #4caf50; color: #fff; cursor: pointer; }
-        .chat-send:disabled { background: #aaa; cursor: not-allowed; }
+      body {
+        font-family: Arial, sans-serif;
+        text-align: center;
+      }
+      .container {
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        margin-top: 30px;
+      }
+      .game-area {
+        flex: 0 0 300px;
+      }
+      .board {
+        display: grid;
+        grid-template-columns: repeat(3, 80px);
+        grid-gap: 5px;
+        margin: 0 auto 20px auto;
+        width: 255px;
+      }
+      .cell {
+        width: 80px;
+        height: 80px;
+        font-size: 2.5em;
+        cursor: pointer;
+        background: #f0f0f0;
+        border: 2px solid #333;
+      }
+      .cell:disabled {
+        background: #ddd;
+        cursor: not-allowed;
+      }
+      .info {
+        margin: 20px;
+        font-size: 1.2em;
+      }
+      .reset-btn {
+        margin-top: 20px;
+        padding: 8px 20px;
+        font-size: 1em;
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     {% include 'navbar.html' %}
     <pre class="ansi-art">
         {% if theme == 'christmas' %}
@@ -30,21 +57,21 @@
         {% endif %}
     </pre>
     <div class="ansi-btn-area">
-        <a href="/game" class="ansi-btn">進入遊戲</a>
+      <a href="/game" class="ansi-btn">進入遊戲</a>
     </div>
     <style>
-    .ansi-art {
+      .ansi-art {
         font-size: 1.2em;
         white-space: pre;
         text-align: left;
         display: inline-block;
         margin-top: -20px;
         padding: 16px 24px;
-    }
-    .ansi-btn-area {
+      }
+      .ansi-btn-area {
         margin-top: -25px;
-    }
-    .ansi-btn {
+      }
+      .ansi-btn {
         display: inline-block;
         background: #333;
         color: #fff;
@@ -57,12 +84,12 @@
         margin: 0 8px;
         transition: background 0.2s, color 0.2s;
         box-shadow: 0 2px 8px #bbb;
-    }
-    .ansi-btn:hover {
+      }
+      .ansi-btn:hover {
         background: #ffd600;
         color: #333;
         border-color: #ffd600;
-    }
+      }
     </style>
-</body>
+  </body>
 </html>

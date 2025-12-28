@@ -8,6 +8,12 @@
       <a href="/login">登入</a>
       {% else %}
       <a href="/logout">登出</a>
+      <div class="navbar-user">
+        <span class="user-info">
+          <span class="user-icon">{{ session.get('icon') }}</span>
+          <span class="user-name">{{ session.get('user') }}</span>
+        </span>
+      </div>
       {% endif %}
     </div>
   </div>
@@ -46,5 +52,37 @@
   }
   .navbar-links a:hover {
     color: #ffd600;
+  }
+  .navbar-user {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    margin-left: 24px;
+    color: #fff;
+  }
+  .user-info {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.95em;
+  }
+  .user-icon {
+    font-size: 1.1em;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    background: #f3f3f3;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: transform 0.08s, box-shadow 0.08s, border-color 0.08s;
+  }
+  .user-name {
+    max-width: 180px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 </style>

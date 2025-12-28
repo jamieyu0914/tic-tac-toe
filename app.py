@@ -9,12 +9,18 @@ from pvp import init_game_state, set_mode, join_pvp, start_game, handle_cell_cli
 
 app = Flask(__name__)
 app.secret_key = 'tic-tac-toe-login-secret'
-socketio = SocketIO(app)
+# Allow cross-origin Socket.IO connections so clients from other hosts can connect.
+# For a stricter policy, replace "*" with a list of allowed origins.
+socketio = SocketIO(app, cors_allowed_origins="*")
 register_chat_events(socketio)
 
 # 登入頁
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    # If already logged in, redirect to home
+    if 'user' in session:
+        return redirect(url_for('home'))
+
     error = None
     if request.method == 'POST':
         username = request.form.get('username', '').strip()
@@ -107,5 +113,7 @@ def logout():
 
 # Run the app (optional, for running directly)
 if __name__ == '__main__':
-    socketio.run(app, debug=True)
+    # Bind to 0.0.0.0 so the server is reachable from other machines on the network.
+    # Change port as needed. Keep debug=True only for development (it enables the reloader).
+    socketio.run(app, host='0.0.0.0', port=5000, debug=True)
 
