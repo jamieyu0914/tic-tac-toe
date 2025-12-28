@@ -1,5 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, session
 import random
+import os
+from dotenv import load_dotenv
 from flask_socketio import SocketIO
 from flask_cors import CORS
 
@@ -10,10 +12,19 @@ from pvp import init_game_state, set_mode, join_pvp, start_game, handle_cell_cli
 
 app = Flask(__name__)
 CORS(app)
-app.secret_key = 'tic-tac-toe-login-secret'
+# Load environment variables from a .env file (if present)
+load_dotenv()
+
+secret_key = os.getenv('SECRET_KEY')
+app.secret_key = secret_key
+
 # Allow cross-origin Socket.IO connections so clients from other hosts can connect.
 # For a stricter policy, replace "*" with a list of allowed origins.
-socketio = SocketIO(app, cors_allowed_origins="*")
+cors_allowed_origins = os.getenv('CORS_ALLOWED_ORIGINS')
+# Pass cors_allowed_origins as a keyword argument. The SocketIO constructor
+# accepts (app=None, **kwargs), so passing it positionally caused the
+# TypeError: too many positional arguments.
+socketio = SocketIO(app, cors_allowed_origins=cors_allowed_origins)
 register_chat_events(socketio)
 # CORS(app)
 
@@ -116,7 +127,8 @@ def logout():
 
 # Run the app (optional, for running directly)
 if __name__ == '__main__':
-    # Bind to 0.0.0.0 so the server is reachable from other machines on the network.
-    # Change port as needed. Keep debug=True only for development (it enables the reloader).
-    socketio.run(app, host='0.0.0.0', port=5000, debug=True)
+    host = os.getenv('HOST')
+    port = os.getenv('PORT')
+    debug = os.getenv('DEBUG')
+    socketio.run(app, host=host, port=port, debug=debug)
 
