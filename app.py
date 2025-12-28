@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, session
 import random
 from flask_socketio import SocketIO
+from flask_cors import CORS
 
 from chatroom import register_chat_events
 from pvp import init_game_state, set_mode, join_pvp, start_game, handle_cell_click
@@ -8,11 +9,13 @@ from pvp import init_game_state, set_mode, join_pvp, start_game, handle_cell_cli
 # Create an instance of the Flask class
 
 app = Flask(__name__)
+CORS(app)
 app.secret_key = 'tic-tac-toe-login-secret'
 # Allow cross-origin Socket.IO connections so clients from other hosts can connect.
 # For a stricter policy, replace "*" with a list of allowed origins.
 socketio = SocketIO(app, cors_allowed_origins="*")
 register_chat_events(socketio)
+# CORS(app)
 
 # 登入頁
 @app.route('/login', methods=['GET', 'POST'])

@@ -11,6 +11,7 @@ def init_game_state(session):
         session.setdefault('mode', 'computer')
         session.setdefault('difficulty', 'normal')
         session.setdefault('pvp_waiting', False)
+        session.setdefault('pvp_room_id', None)
         # whether the game has been started after selecting mode
         session.setdefault('started', False)
 
@@ -25,9 +26,11 @@ def set_mode(session, form):
     if sel_mode == 'computer':
         session['difficulty'] = form.get('difficulty', 'normal')
         session['pvp_waiting'] = False
+        session['pvp_room_id'] = None
     else:
-        # pvp selected: set waiting state
+        # pvp selected: will use Socket.IO for matchmaking
         session['pvp_waiting'] = True
+        session['pvp_room_id'] = None
     # reset game when changing mode and require pressing Start
     session['board'] = [None] * 9
     session['turn'] = 'X'
@@ -35,7 +38,11 @@ def set_mode(session, form):
     session['started'] = False
 
 def join_pvp(session):
-    """Placeholder when a second player joins a PVP game."""
+    """Placeholder when a second player joins a PVP game.
+    
+    Note: Actual PvP matchmaking now happens via Socket.IO.
+    This is kept for compatibility but may not be used.
+    """
     session['pvp_waiting'] = False
     # when someone joins, start the game
     session['board'] = [None] * 9
@@ -55,6 +62,9 @@ def handle_cell_click(session, form):
 
     Expects 'cell' in form. Updates session (board, turn, winner) and
     performs a computer move when in computer mode.
+    
+    Note: For PvP mode, moves are now handled via Socket.IO.
+    This function only handles computer mode.
     """
     # guard: ignore cell clicks if game hasn't been started
     if not session.get('started', False):
@@ -63,7 +73,9 @@ def handle_cell_click(session, form):
     # quick guards
     if session.get('winner'):
         return
-    if session.get('mode') == 'pvp' and session.get('pvp_waiting', True):
+    
+    # PvP mode is now handled by Socket.IO, not POST requests
+    if session.get('mode') == 'pvp':
         return
 
     if 'cell' not in form:
@@ -99,3 +111,4 @@ def handle_cell_click(session, form):
                 session['winner'] = winner
                 # set turn back to X if it was O
                 session['turn'] = 'X' if session['turn'] == 'O' else session['turn']
+
