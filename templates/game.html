@@ -35,15 +35,48 @@
                     Turn: <b>{{ turn }}</b>
                 {% endif %}
             </div>
-            <form method="post">
-                <div class="board">
-                    {% for i in range(9) %}
-                        <button class="cell" name="cell" value="{{ i }}" {% if board[i] or winner %}disabled{% endif %}>
-                            {{ board[i] if board[i] else '' }}
-                        </button>
-                    {% endfor %}
+            <div class="mode-select">
+                <form method="post" id="mode-form">
+                    <label>
+                        <input type="radio" name="mode" value="computer" {% if mode == 'computer' %}checked{% endif %}> 電腦對戰
+                    </label>
+                    <select name="difficulty">
+                        <option value="simple" {% if difficulty == 'simple' %}selected{% endif %}>簡單</option>
+                        <option value="normal" {% if difficulty == 'normal' %}selected{% endif %}>普通</option>
+                        <option value="hard" {% if difficulty == 'hard' %}selected{% endif %}>困難</option>
+                    </select>
+                    <label>
+                        <input type="radio" name="mode" value="pvp" {% if mode == 'pvp' %}checked{% endif %}> 玩家對戰
+                    </label>
+                    <button type="submit" name="action" value="set_mode">設定模式</button>
+                </form>
+                {% if mode == 'pvp' %}
+                    {% if pvp_waiting %}
+                        <div><b>目前狀態：等候加入</b></div>
+                        <form method="post"><button type="submit" name="action" value="join_pvp">我已加入</button></form>
+                    {% else %}
+                        <div><b>玩家已加入，開始對戰</b></div>
+                    {% endif %}
+                {% endif %}
+            </div>
+            {% if not started %}
+                <div style="margin:16px">
+                    <p><b>請先選擇 遊戲模式，然後按「開始遊戲」進入遊戲畫面。</b></p>
+                    <form method="post">
+                        <button type="submit" name="action" value="start_game" {% if mode == 'pvp' and pvp_waiting %}disabled{% endif %}>開始遊戲</button>
+                    </form>
                 </div>
-            </form>
+            {% else %}
+                <form method="post">
+                    <div class="board">
+                        {% for i in range(9) %}
+                            <button class="cell" name="cell" value="{{ i }}" {% if board[i] or winner or (mode == 'pvp' and pvp_waiting) or not started %}disabled{% endif %}>
+                                {{ board[i] if board[i] else '' }}
+                            </button>
+                        {% endfor %}
+                    </div>
+                </form>
+            {% endif %}
             <form action="{{ url_for('reset') }}" method="get">
                 <button class="reset-btn" type="submit">Restart Game</button>
             </form>
