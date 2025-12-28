@@ -9,11 +9,16 @@
 ## 安裝依賴
 1. 執行：`pip install flask`
 2. 執行：`pip install flask_socketio`
+3. 執行：`pip install flask_cors`
+4. 執行：`pip install dotenv`
 
 ## 啟動應用程式
 1. 在終端機啟用 venv 後
 2. 執行：`python app.py`
 3. 或用 Flask 指令：`flask --app app run` 或 `flask run`
+
+## 多人連線應用程式
+1. 使用 Flask 指令：`flask run --host=0.0.0.0 --port=5000`
 
 ## 查看路由
 1. 執行：`flask --app app routes`

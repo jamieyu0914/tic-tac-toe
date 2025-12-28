@@ -5,6 +5,8 @@ app.py - Flask 應用主程式
 
 from flask import Flask, render_template, request, redirect, url_for, session
 import random
+import os
+from dotenv import load_dotenv
 from flask_socketio import SocketIO
 from flask_cors import CORS
 
@@ -15,11 +17,19 @@ from AIPlayer import AIPlayer
 # 創建 Flask 應用實例
 app = Flask(__name__)
 CORS(app)
-app.secret_key = 'tic-tac-toe-login-secret'
+# Load environment variables from a .env file (if present)
+load_dotenv()
 
-# 創建 Socket.IO 實例（用於聊天室和 PVP 對戰）
-# 允許跨域連接，生產環境建議限制來源
-socketio = SocketIO(app, cors_allowed_origins="*")
+secret_key = os.getenv('SECRET_KEY')
+app.secret_key = secret_key
+
+# Allow cross-origin Socket.IO connections so clients from other hosts can connect.
+# For a stricter policy, replace "*" with a list of allowed origins.
+cors_allowed_origins = os.getenv('CORS_ALLOWED_ORIGINS')
+# Pass cors_allowed_origins as a keyword argument. The SocketIO constructor
+# accepts (app=None, **kwargs), so passing it positionally caused the
+# TypeError: too many positional arguments.
+socketio = SocketIO(app, cors_allowed_origins=cors_allowed_origins)
 register_chat_events(socketio)
 
 
@@ -206,8 +216,8 @@ def logout():
 # ============================================================
 
 if __name__ == '__main__':
-    # 啟動應用
-    # host='0.0.0.0' 允許外部訪問
-    # debug=True 僅用於開發環境
-    socketio.run(app, host='0.0.0.0', port=5000, debug=True)
+    host = os.getenv('HOST')
+    port = os.getenv('PORT')
+    debug = os.getenv('DEBUG')
+    socketio.run(app, host=host, port=port, debug=debug)
 
