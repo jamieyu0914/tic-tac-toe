@@ -16,7 +16,8 @@
         .chat-messages { height: 320px; overflow-y: auto; border: 1px solid #ddd; background: #fff; padding: 8px; margin-bottom: 12px; border-radius: 4px; text-align: left; }
         .chat-input-area { display: flex; }
         .chat-input { flex: 1; padding: 6px; font-size: 1em; border-radius: 4px; border: 1px solid #ccc; }
-        .chat-send { margin-left: 8px; padding: 6px 16px; font-size: 1em; border-radius: 4px; border: none; background: #4caf50; color: #fff; cursor: pointer; }
+        .chat-send { margin-left: 8px; padding: 6px 16px; font-size: 1em; border-radius: 4px; border: none; background: #333; color: #fff; cursor: pointer; }
+        .chat-send:hover { background: #ffd600; color: #333; border-color: #ffd600; }
         .chat-send:disabled { background: #aaa; cursor: not-allowed; }
     </style>
 </head>
@@ -35,19 +36,53 @@
                     Turn: <b>{{ turn }}</b>
                 {% endif %}
             </div>
-            <form method="post">
-                <div class="board">
-                    {% for i in range(9) %}
-                        <button class="cell" name="cell" value="{{ i }}" {% if board[i] or winner %}disabled{% endif %}>
-                            {{ board[i] if board[i] else '' }}
-                        </button>
-                    {% endfor %}
+            <div class="mode-select">
+                <form method="post" id="mode-form">
+                    <label>
+                        <input type="radio" name="mode" value="computer" {% if mode == 'computer' %}checked{% endif %}> 電腦對戰
+                    </label>
+                    <select name="difficulty">
+                        <option value="simple" {% if difficulty == 'simple' %}selected{% endif %}>簡單</option>
+                        <option value="normal" {% if difficulty == 'normal' %}selected{% endif %}>普通</option>
+                        <option value="hard" {% if difficulty == 'hard' %}selected{% endif %}>困難</option>
+                    </select>
+                    <label>
+                        <input type="radio" name="mode" value="pvp" {% if mode == 'pvp' %}checked{% endif %}> 玩家對戰
+                    </label>
+                    <button type="submit" name="action" value="set_mode">設定模式</button>
+                </form>
+                {% if mode == 'pvp' %}
+                    {% if pvp_waiting %}
+                        <div><b>目前狀態：等候加入</b></div>
+                        <form method="post"><button type="submit" name="action" value="join_pvp">我已加入</button></form>
+                    {% else %}
+                        <div><b>玩家已加入，開始對戰</b></div>
+                    {% endif %}
+                {% endif %}
+            </div>
+            {% if not started %}
+                <div style="margin:16px">
+                    <p><b>請先選擇 遊戲模式，然後按「開始遊戲」進入遊戲畫面。</b></p>
+                    <form method="post">
+                        <button type="submit" name="action" value="start_game" {% if mode == 'pvp' and pvp_waiting %}disabled{% endif %}>開始遊戲</button>
+                    </form>
                 </div>
-            </form>
+            {% else %}
+                <form method="post">
+                    <div class="board">
+                        {% for i in range(9) %}
+                            <button class="cell" name="cell" value="{{ i }}" {% if board[i] or winner or (mode == 'pvp' and pvp_waiting) or not started %}disabled{% endif %}>
+                                {{ board[i] if board[i] else '' }}
+                            </button>
+                        {% endfor %}
+                    </div>
+                </form>
+            {% endif %}
             <form action="{{ url_for('reset') }}" method="get">
                 <button class="reset-btn" type="submit">Restart Game</button>
             </form>
         </div>
+        {% if mode != 'computer' %}
         <div class="chatroom">
             <h2>聊天室</h2>
             <div id="chat-messages" class="chat-messages"></div>
@@ -56,6 +91,7 @@
                 <button id="chat-send" class="chat-send">送出</button>
             </div>
         </div>
+        {% endif %}
     </div>
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
     <script>

@@ -2,19 +2,25 @@ from flask import Flask, render_template, request, redirect, url_for, session
 import random
 from flask_socketio import SocketIO
 
-from tic_tac_toe import check_winner
 from chatroom import register_chat_events
+from pvp import init_game_state, set_mode, join_pvp, start_game, handle_cell_click
 
 # Create an instance of the Flask class
 
 app = Flask(__name__)
 app.secret_key = 'tic-tac-toe-login-secret'
-socketio = SocketIO(app)
+# Allow cross-origin Socket.IO connections so clients from other hosts can connect.
+# For a stricter policy, replace "*" with a list of allowed origins.
+socketio = SocketIO(app, cors_allowed_origins="*")
 register_chat_events(socketio)
 
 # 登入頁
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    # If already logged in, redirect to home
+    if 'user' in session:
+        return redirect(url_for('home'))
+
     error = None
     if request.method == 'POST':
         username = request.form.get('username', '').strip()
@@ -32,7 +38,7 @@ def login():
             session['icon'] = icon
             return redirect(url_for('home'))
         
-    ICON_POOL = ['😺','🐶','🐼','🚀','🎃','🌟','🐵','🐸','🦊','🐢','🐱','🐯','🦁','🐷','🦄']
+    ICON_POOL = ['😺','🐶','🐼','🚀','🎃','🐧','🐵','🐸','🦊','🐢','🐟','🐯','🦁','🐷','🦄']
 
     icons = random.sample(ICON_POOL, 5)
     session['login_icons'] = icons
@@ -53,26 +59,40 @@ def home():
 def game():
     if 'user' not in session:
         return redirect(url_for('login'))
-    # 初始化遊戲狀態
-    if 'board' not in session:
-        session['board'] = [None] * 9
-        session['turn'] = 'X'
-        session['winner'] = None
+    # 初始化遊戲狀態 (moved to pvp module)
+    init_game_state(session)
     board = session['board']
     turn = session['turn']
     winner = session['winner']
+    mode = session.get('mode', 'computer')
+    difficulty = session.get('difficulty', 'normal')
+    pvp_waiting = session.get('pvp_waiting', False)
 
-    if request.method == 'POST' and not winner:
-        idx = int(request.form['cell'])
-        if board[idx] is None:
-            board[idx] = turn
-            winner = check_winner(board)
-            session['winner'] = winner
-            session['turn'] = 'O' if turn == 'X' else 'X'
-            session['board'] = board
+    if request.method == 'POST':
+        # Mode selection form
+        if request.form.get('action') == 'set_mode':
+            set_mode(session, request.form)
+            return redirect(url_for('game'))
+
+        # join pvp (placeholder for multiplayer)
+        if request.form.get('action') == 'join_pvp':
+            join_pvp(session)
+            return redirect(url_for('game'))
+
+        # start game after selecting mode
+        if request.form.get('action') == 'start_game':
+            start_game(session)
+            return redirect(url_for('game'))
+
+        # Cell click (player move)
+        # ignore cell clicks if game hasn't been started (handled in pvp.handle_cell_click)
+        if 'cell' in request.form:
+            handle_cell_click(session, request.form)
         return redirect(url_for('game'))
 
-    return render_template('game.html', board=board, turn=turn, winner=winner)
+    return render_template('game.html', board=board, turn=turn, winner=winner,
+                           mode=mode, difficulty=difficulty, pvp_waiting=pvp_waiting,
+                           started=session.get('started', False))
 
 
 # 重置遊戲
@@ -93,5 +113,7 @@ def logout():
 
 # Run the app (optional, for running directly)
 if __name__ == '__main__':
-    socketio.run(app, debug=True)
+    # Bind to 0.0.0.0 so the server is reachable from other machines on the network.
+    # Change port as needed. Keep debug=True only for development (it enables the reloader).
+    socketio.run(app, host='0.0.0.0', port=5000, debug=True)
 
