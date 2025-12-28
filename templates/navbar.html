@@ -1,28 +1,27 @@
 <nav class="navbar">
-    <div class="navbar-container">
-        <a href="/" class="navbar-title">Tic-Tac-Toe</a>
-        <div class="navbar-links">
-            <a href="/">首頁</a>
-            <a href="/game">遊戲</a>
-            <a href="/reset">重置</a>
-            {% if request.endpoint == 'login' %}
-                <a href="/register">註冊</a>
-            {% else %}
-                <a href="/logout">登出</a>
-            {% endif %}
-        </div>
+  <div class="navbar-container">
+    <a href="/" class="navbar-title">Tic-Tac-Toe</a>
+    <div class="navbar-links">
+      <a href="/">首頁</a>
+      <a href="/game">遊戲</a>
+      {% if request.endpoint == 'login' %}
+      <a href="/login">登入</a>
+      {% else %}
+      <a href="/logout">登出</a>
+      {% endif %}
     </div>
+  </div>
 </nav>
 <style>
-.navbar {
+  .navbar {
     width: 100%;
     background: #333;
     color: #fff;
     padding: 0;
     margin: 0 0 24px 0;
     box-shadow: 0 2px 8px #bbb;
-}
-.navbar-container {
+  }
+  .navbar-container {
     max-width: 900px;
     margin: 0 auto;
     display: flex;
@@ -30,22 +29,22 @@
     justify-content: space-between;
     padding: 0 24px;
     height: 56px;
-}
-.navbar-title {
+  }
+  .navbar-title {
     color: #fff;
     text-decoration: none;
     font-size: 1.4em;
     font-weight: bold;
     letter-spacing: 1px;
-}
-.navbar-links a {
+  }
+  .navbar-links a {
     color: #fff;
     text-decoration: none;
     margin-left: 24px;
     font-size: 1em;
     transition: color 0.2s;
-}
-.navbar-links a:hover {
+  }
+  .navbar-links a:hover {
     color: #ffd600;
-}
+  }
 </style>

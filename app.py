@@ -32,7 +32,7 @@ def login():
             session['icon'] = icon
             return redirect(url_for('home'))
         
-    ICON_POOL = ['😺','🐶','🐼','🚀','🎃','🌟','🐵','🐸','🦊','🐢','🐱','🐯','🦁','🐷','🦄']
+    ICON_POOL = ['😺','🐶','🐼','🚀','🎃','🐧','🐵','🐸','🦊','🐢','🐟','🐯','🦁','🐷','🦄']
 
     icons = random.sample(ICON_POOL, 5)
     session['login_icons'] = icons
