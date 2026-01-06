@@ -5,45 +5,42 @@ app.py - Flask 應用主程式
 
 from flask import Flask, render_template, request, redirect, url_for, session
 import random
-import os
-from dotenv import load_dotenv
 from flask_socketio import SocketIO
 from flask_cors import CORS
 
-from chatroom import register_chat_events
+from chat_events import register_chat_events
+from game_events import register_game_events
 from Game import Game
 from AIPlayer import AIPlayer
 
 # 創建 Flask 應用實例
 app = Flask(__name__)
 CORS(app)
-# Load environment variables from a .env file (if present)
-load_dotenv()
+app.secret_key = 'SINBON'
 
-secret_key = os.getenv('SECRET_KEY')
-app.secret_key = secret_key
+# 創建 Socket.IO 實例
+# - async_mode='threading': 使用多線程異步模式
+# - cors_allowed_origins="*": 允許所有來源跨域連接（生產環境應改為具體域名） '*' -> 允許所有來源跨域連接
+socketio = SocketIO(app, async_mode='threading', cors_allowed_origins="*")
 
-# Allow cross-origin Socket.IO connections so clients from other hosts can connect.
-# For a stricter policy, replace "*" with a list of allowed origins.
-cors_allowed_origins = os.getenv('CORS_ALLOWED_ORIGINS')
-# Pass cors_allowed_origins as a keyword argument. The SocketIO constructor
-# accepts (app=None, **kwargs), so passing it positionally caused the
-# TypeError: too many positional arguments.
-socketio = SocketIO(app, cors_allowed_origins=cors_allowed_origins)
-register_chat_events(socketio)
+# 註冊事件處理
+register_chat_events(socketio)  # 聊天室事件
+register_game_events(socketio)  # 遊戲邏輯事件
 
 
 # ============================================================
 # 輔助函數
 # ============================================================
 
-def get_or_create_game() -> Game:
+# For 單機/電腦模式遊戲狀態使用
+def get_or_create_game() -> Game: 
     """
     從 session 獲取或創建遊戲實例
     
     Returns:
         Game: 遊戲實例
     """
+    # 若 session 中無遊戲狀態，創建新遊戲；有則載入現有狀態
     if 'game_state' not in session:
         game = Game()
         session['game_state'] = game.get_state()
@@ -82,6 +79,8 @@ def login():
         return redirect(url_for('home'))
 
     error = None
+    ICON_POOL = ['😺','🐶','🐼','🚀','🎃','🐧','🐵','🐸','🦊','🐢','🐟','🐯','🦁','🐷','🦄']
+    
     if request.method == 'POST':
         username = request.form.get('username', '').strip()
         icon = request.form.get('icon')
@@ -90,6 +89,8 @@ def login():
         # 驗證輸入
         if not username:
             error = '請輸入使用者名稱'
+        elif len(username) > 10:
+            error = '使用者名稱不可超過 10 個字元'
         elif not icon:
             error = '請選擇一個圖示'
         elif icon not in shown_icons:
@@ -100,11 +101,13 @@ def login():
             session['user'] = username
             session['icon'] = icon
             return redirect(url_for('home'))
-    
-    # 生成隨機圖示選項（每次刷新不同）
-    ICON_POOL = ['😺','🐶','🐼','🚀','🎃','🐧','🐵','🐸','🦊','🐢','🐟','🐯','🦁','🐷','🦄']
-    icons = random.sample(ICON_POOL, 5)
-    session['login_icons'] = icons
+        
+        # 驗證失敗，使用已保存的圖示
+        icons = shown_icons
+    else:
+        # GET 請求：生成新的隨機圖示
+        icons = random.sample(ICON_POOL, 5)
+        session['login_icons'] = icons
     
     return render_template('login.html', error=error, icons=icons)
 
@@ -143,7 +146,7 @@ def game():
     game_instance = get_or_create_game()
     
     if request.method == 'POST':
-        action = request.form.get('action')
+        action = request.form.get('action') #從 <form method="post"> 取name值
         
         # 設置遊戲模式
         if action == 'set_mode':
@@ -166,11 +169,11 @@ def game():
                 
                 # 玩家移動
                 if game_instance.make_move(position):
-                    save_game(game_instance)
+                    save_game(game_instance) # 保存玩家移動後的狀態
                     
                     # AI 回應（如果遊戲還未結束）
                     if not game_instance.winner and game_instance.turn == 'O':
-                        ai = AIPlayer(game_instance.difficulty)
+                        ai = AIPlayer(game_instance.difficulty) # 每次根據當前棋盤重新計算
                         ai_move = ai.get_move(game_instance.board)
                         if ai_move is not None:
                             game_instance.make_move(ai_move)
@@ -183,14 +186,23 @@ def game():
     
     # 準備模板數據
     state = game_instance.get_state()
+    
+    # 難度中文名稱
+    difficulty_names = {
+        'simple': '簡單',
+        'normal': '普通',
+        'hard': '困難'
+    }
+    
     return render_template(
         'game.html',
-        board=state['board'],
-        turn=state['turn'],
-        winner=state['winner'],
-        mode=state['mode'],
-        difficulty=state['difficulty'],
-        pvp_waiting=session.get('pvp_waiting', False),
+        board=state['board'], # 棋盤狀態
+        turn=state['turn'], # 輪到誰?
+        winner=state['winner'], # 贏家 
+        mode=state['mode'], # pvp or computer
+        difficulty=state['difficulty'], # AI 難度
+        difficulty_name=difficulty_names.get(state['difficulty'], '普通'),
+        username=session.get('user', '玩家'),
         started=state['started']
     )
 
@@ -198,8 +210,21 @@ def game():
 # 重置遊戲
 @app.route('/reset')
 def reset():
-    """重置遊戲狀態並重定向到遊戲頁面"""
-    session.pop('game_state', None)
+    """重置遊戲狀態但保留模式設定，並重定向到遊戲頁面"""
+    if 'game_state' in session:
+        # 保留當前模式和難度設定
+        current_state = session['game_state']
+        mode = current_state.get('mode', 'computer')
+        difficulty = current_state.get('difficulty', 'normal')
+        
+        # 創建新遊戲但保留設定
+        game = Game()
+        game.set_mode(mode, difficulty)
+        game.start()
+        save_game(game)
+    else:
+        session.pop('game_state', None)
+    
     return redirect(url_for('game'))
 
 
@@ -216,8 +241,8 @@ def logout():
 # ============================================================
 
 if __name__ == '__main__':
-    host = os.getenv('HOST')
-    port = os.getenv('PORT')
-    debug = os.getenv('DEBUG')
-    socketio.run(app, host=host, port=port, debug=debug)
+    # 啟動應用
+    # host='0.0.0.0' 允許外部訪問
+    # debug=True 僅用於開發環境
+    socketio.run(app, host='0.0.0.0', port=5000, debug=True)
 

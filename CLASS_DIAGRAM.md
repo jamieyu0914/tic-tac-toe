@@ -219,13 +219,22 @@ AIPlayer ──called by──> app.py (電腦回合時)
 5. 將遊戲狀態保存回 Session
 6. 返回 HTML 模板
 
-## 5. chatroom.py - Socket.IO 事件層
+## 5. Socket.IO 事件層
 
+### chat_events.py - 聊天事件
 ```python
 ┌──────────────────────────────┐
-│   Socket.IO Events           │
+│   Chat Events                │
 ├──────────────────────────────┤
 │ • chat message               │
+└──────────────────────────────┘
+```
+
+### game_events.py - 遊戲事件
+```python
+┌──────────────────────────────┐
+│   Game Events                │
+├──────────────────────────────┤
 │ • join_pvp                   │
 │ • make_move                  │
 │ • reset_game                 │
@@ -263,57 +272,23 @@ AIPlayer ──called by──> app.py (電腦回合時)
        │
        │ HTTP / WebSocket
        ▼
-┌──────────────────────────────────────────┐
-│          Flask + Socket.IO               │
-│  ┌────────────┐      ┌────────────┐     │
-│  │  app.py    │      │chatroom.py │     │
-│  │  (Routes)  │      │  (Events)  │     │
-│  └─────┬──────┘      └──────┬─────┘     │
-│        │                    │            │
-│        │ 電腦模式           │ PVP模式    │
-│        ▼                    ▼            │
-│  ┌──────────┐        ┌──────────────┐   │
-│  │   Game   │◄───────│ RoomManager  │   │
-│  └────┬─────┘        │  └─GameRoom  │   │
-│       │              │    └─Game    │   │
-│       │              └──────────────┘   │
-│       │                                  │
-│       ▼                                  │
-│  ┌──────────┐                           │
-│  │ AIPlayer │                           │
-│  └──────────┘                           │
-└──────────────────────────────────────────┘
+┌────────────────────────────────────────────────────┐
+│          Flask + Socket.IO                         │
+│  ┌────────────┐  ┌──────────────┐  ┌────────────┐│
+│  │  app.py    │  │chat_events.py│  │game_events │││
+│  │  (Routes)  │  │   (Chat)     │  │   (PVP)    │││
+│  └─────┬──────┘  └──────────────┘  └──────┬─────┘│
+│        │                                   │       │
+│        │ 電腦模式                   PVP模式│       │
+│        ▼                                   ▼       │
+│  ┌──────────┐                    ┌──────────────┐│
+│  │   Game   │◄───────────────────│ RoomManager  ││
+│  └────┬─────┘                    │  └─GameRoom  ││
+│       │                          │    └─Game    ││
+│       │                          └──────────────┘│
+│       ▼                                           │
+│  ┌──────────┐                                    │
+│  │ AIPlayer │                                    │
+│  └──────────┘                                    │
+└────────────────────────────────────────────────────┘
 ```
-
-## 與 TaiwanMJ 的風格對比
-
-### 相似點
-1. **類別導向設計**
-   - TaiwanMJ: `Player`, `Deck`, `Controller`, `Rule16`
-   - Tic-Tac-Toe: `Game`, `AIPlayer`, `RoomManager`, `GameRoom`
-
-2. **枚舉使用**
-   - TaiwanMJ: `SUIT`, `WIND`, `MELD`, `Action`
-   - Tic-Tac-Toe: `GameMode`, `Difficulty`, `Player`, `GameResult`
-
-3. **狀態管理**
-   - TaiwanMJ: 玩家狀態、牌組狀態
-   - Tic-Tac-Toe: `get_state()`/`load_state()`
-
-4. **完整註解**
-   - 模組級 docstring
-   - 類別和方法說明
-   - 中文註解
-
-### 差異點
-1. **執行緒模型**
-   - TaiwanMJ: `Player` 繼承 `Thread`，使用事件同步
-   - Tic-Tac-Toe: 無需執行緒（遊戲較簡單）
-
-2. **複雜度**
-   - TaiwanMJ: 複雜規則（吃碰槓胡、台數計算）
-   - Tic-Tac-Toe: 簡單規則（勝負判定）
-
-3. **通訊方式**
-   - TaiwanMJ: 使用 `pubsub` 模組
-   - Tic-Tac-Toe: 使用 Flask-SocketIO

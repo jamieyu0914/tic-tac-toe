@@ -109,7 +109,7 @@ class Game:
         
         # 執行移動
         move_player = player if player else self.turn
-        self.board[position] = move_player
+        self.board[position] = move_player #下棋
         
         # 檢查勝負
         self.winner = self._check_winner()
@@ -173,12 +173,12 @@ class Game:
             dict: 包含完整遊戲狀態的字典
         """
         return {
-            'board': self.board.copy(),
-            'turn': self.turn,
-            'winner': self.winner,
-            'mode': self.mode,
-            'difficulty': self.difficulty,
-            'started': self.started
+            'board': self.board.copy(),    # 棋盤狀態
+            'turn': self.turn,             # 紀錄當前回合玩家
+            'winner': self.winner,         # None, 'X', 'O', 'Draw'
+            'mode': self.mode,             # 'computer' 或 'pvp'
+            'difficulty': self.difficulty, # AI 難度
+            'started': self.started        # 遊戲是否已開始
         }
     
     def load_state(self, state: dict):

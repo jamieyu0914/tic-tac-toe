@@ -21,7 +21,7 @@
         display: grid;
         grid-template-columns: repeat(3, 80px);
         grid-gap: 5px;
-        margin: 0 auto 20px auto;
+        margin: 20px auto 20px auto;
         width: 255px;
       }
       .cell {
@@ -50,9 +50,9 @@
   <body>
     {% include 'navbar.html' %}
     <pre class="ansi-art">
-        {% if theme == 'christmas' %}
+        {% if theme == 'christmas' %} <!-- 聖誕節主題 -->
             {% include 'theme/christmas.html' %}
-        {% else %}
+        {% else %} <!-- 新年主題 -->
             {% include 'theme/newyear.html' %}
         {% endif %}
     </pre>

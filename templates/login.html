@@ -57,16 +57,13 @@
         background: #f3f3f3;
         border: 2px solid transparent;
         cursor: pointer;
-        transition: transform 0.08s, box-shadow 0.08s, border-color 0.08s;
+        transition: box-shadow 0.08s, border-color 0.08s;
       }
       .icon-label input {
         display: none;
       }
       .icon-label .icon {
         font-size: 1.6em;
-      }
-      .icon-label:hover {
-        transform: translateY(-2px);
       }
       .icon-label.selected {
         box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
@@ -107,18 +104,13 @@
       </form>
     </div>
     <script>
-      // Simple UI: highlight selected icon
+      // 功能: 高亮顯示選中的圖示
       document.addEventListener("click", function (e) {
         if (e.target.closest(".icon-label")) {
           document
             .querySelectorAll(".icon-label")
-            .forEach((l) => l.classList.remove("selected"));
-          e.target.closest(".icon-label").classList.add("selected");
-          // ensure the radio is checked
-          const radio = e.target
-            .closest(".icon-label")
-            .querySelector('input[type="radio"]');
-          if (radio) radio.checked = true;
+            .forEach((l) => l.classList.remove("selected")); //移除藍色邊框效果
+          e.target.closest(".icon-label").classList.add("selected"); //選中的標籤加上藍邊框效果
         }
       });
     </script>
