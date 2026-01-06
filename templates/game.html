@@ -31,69 +31,13 @@
                         <b>平手!</b>
                     {% else %} <!-- 有贏家 -->
                         <b>贏家: 
-                        {% if mode == 'computer' %} <!-- 電腦對戰模式 -->
-                            {% if winner == 'X' %}
-                                {{ username }} ({{ winner }})
-                            {% else %}
-                                電腦({{ difficulty_name }}) ({{ winner }})
-                            {% endif %}
-                        {% else %} <!-- PvP 模式 -->
                             {{ winner }}
-                        {% endif %}
                         </b>
                     {% endif %}
                 {% elif started %} <!-- 遊戲進行中 -->
                     輪到: <b>{{ turn }}</b>
-                {% else %} <!-- 尚未開始遊戲 -->
-                    請選擇模式並開始遊戲 
                 {% endif %}
             </div>
-            <div class="mode-select">
-                <form method="post" id="mode-form">
-                    <label>
-                        <input type="radio" name="mode" value="computer" {% if mode == 'computer' %}checked{% endif %}> 電腦對戰
-                    </label>
-                    {% if mode == 'computer' %}
-                    <select name="difficulty">
-                        <option value="simple" {% if difficulty == 'simple' %}selected{% endif %}>簡單</option>
-                        <option value="normal" {% if difficulty == 'normal' %}selected{% endif %}>普通</option>
-                        <option value="hard" {% if difficulty == 'hard' %}selected{% endif %}>困難</option>
-                    </select>
-                    {% endif %}
-                    <label>
-                        <input type="radio" name="mode" value="pvp" {% if mode == 'pvp' %}checked{% endif %}> 玩家對戰
-                    </label><br>
-                    <button type="submit" name="action" value="set_mode" style="margin-top: 20px;">設定對戰</button>
-                </form>
-                {% if mode == 'pvp' %}
-                    <div id="pvp-status"></div>
-                {% endif %}
-            </div>
-            
-            {% if mode == 'computer' %}
-                {# Computer mode #}
-                {% if not started %}
-                    <div style="margin:16px">
-                        <p><b>請先選擇難度，再點擊「設定對戰」，按下「開始遊戲」，立即加入遊戲。</b></p>
-                        <form method="post">
-                            <button type="submit" name="action" value="start_game">開始遊戲</button>
-                        </form>
-                    </div>
-                {% else %}
-                    <form method="post">
-                        <div class="board">
-                            {% for i in range(9) %}
-                                <button class="cell" name="cell" value="{{ i }}" {% if board[i] or winner %}disabled{% endif %}>
-                                    {{ board[i] if board[i] else '' }}
-                                </button>
-                            {% endfor %}
-                        </div>
-                    </form>
-                    <form method="get" action="{{ url_for('reset') }}" style="display: inline;">
-                        <button class="reset-btn" type="submit">重新開始遊戲</button>
-                    </form>
-                {% endif %}
-            {% else %}
                 {# PvP mode #}
                 <div style="margin:16px">
                     {% if not started %}
@@ -113,9 +57,7 @@
                 {% else %}
                     <button class="reset-btn" id="reset-btn" type="button" onclick="resetGame()">重新開始遊戲</button>
                 {% endif %}
-            {% endif %}
         </div>
-        {% if mode != 'computer' %}
         <div class="chatroom">
             <h2>聊天室</h2>
             <div id="chat-messages" class="chat-messages"></div>
@@ -124,7 +66,6 @@
                 <button id="chat-send" class="chat-send" onclick="sendMessage()">送出</button>
             </div>
         </div>
-        {% endif %}
     </div>
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
     <script>
@@ -307,8 +248,6 @@
                 }
             }
         }
-        // Note: Computer mode doesn't need JavaScript for reset button, 
-        // it's handled by inline onclick in the template
     </script>
 </body>
 </html>

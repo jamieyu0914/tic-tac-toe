@@ -22,16 +22,7 @@
 ┌─────────────────┐
 │   GameMode      │ (Enum)
 ├─────────────────┤
-│ + COMPUTER      │
 │ + PVP           │
-└─────────────────┘
-
-┌─────────────────┐
-│   Difficulty    │ (Enum)
-├─────────────────┤
-│ + SIMPLE        │
-│ + NORMAL        │
-│ + HARD          │
 └─────────────────┘
 
 ┌─────────────────┐
@@ -76,8 +67,7 @@
 - `board`: 9 格棋盤，None 表示空位
 - `turn`: 當前回合 ('X' 或 'O')
 - `winner`: 勝者 ('X', 'O', 'Draw', 或 None)
-- `mode`: 遊戲模式 ('computer' 或 'pvp')
-- `difficulty`: AI 難度 ('simple', 'normal', 'hard')
+- `mode`: 遊戲模式 ('pvp')
 - `started`: 遊戲是否已開始
 
 ### 關鍵方法說明
