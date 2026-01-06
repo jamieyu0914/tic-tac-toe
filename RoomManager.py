@@ -50,8 +50,8 @@ class GameRoom:
         """
         self.room_id = room_id
         self.game = Game()  # 遊戲實例
-        self.players: List[PlayerInfo] = []
-        self.waiting = True  # 是否等待第二位玩家
+        self.players: List[PlayerInfo] = [] # 玩家列表
+        self.waiting = True  # 等待第二位玩家
         
         # 第一位玩家使用 'X'
         first_player = PlayerInfo(creator_sid, creator_username, Player.X.value)
@@ -74,7 +74,7 @@ class GameRoom:
         # 第二位玩家使用 'O'
         second_player = PlayerInfo(sid, username, Player.O.value)
         self.players.append(second_player)
-        self.waiting = False
+        self.waiting = False # 已有兩位玩家，停止等待
         self.game.start()  # 開始遊戲
         return True
     
@@ -130,7 +130,7 @@ class GameRoom:
             return False
         
         # 執行移動
-        return self.game.make_move(position, player.symbol)
+        return self.game.make_move(position, player.symbol) # (下棋位置, 玩家符號 X 或 O)
     
     def reset(self):
         """重置遊戲"""
@@ -179,7 +179,7 @@ class RoomManager:
             str: 房間 ID
         """
         # 生成唯一房間 ID
-        room_id = f"room_{sid[:8]}_{random.randint(1000, 9999)}"
+        room_id = f"room_{sid[:8]}_{random.randint(1000, 9999)}" # eg. room_abcd1234_5678
         
         # 創建房間
         room = GameRoom(room_id, sid, username)

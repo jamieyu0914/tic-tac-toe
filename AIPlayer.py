@@ -13,8 +13,8 @@ class AIPlayer:
     AI 玩家類別
     提供三種難度的 AI 對手：
     - Simple: 隨機走法
-    - Normal: 基於策略的走法（贏 > 擋 > 中心 > 角落 > 隨機）
-    - Hard: Minimax 演算法（完美走法）
+    - Normal: 策略的走法（贏 > 擋 > 中心 > 角落 > 隨機）
+    - Hard: Minimax 走法
     """
     
     def __init__(self, difficulty: str = 'normal'):
@@ -58,7 +58,7 @@ class AIPlayer:
             board: 棋盤狀態
             
         Returns:
-            List[int]: 空位的索引列表
+            List[int]: 空位的索引列表 -> 即棋盤剩餘可走的位置
         """
         return [i for i, cell in enumerate(board) if cell is None]
     
@@ -81,7 +81,7 @@ class AIPlayer:
         
         Args:
             board: 棋盤狀態
-            available: 可用位置列表
+            available: 可用的位置
             
         Returns:
             int: 選擇的位置
@@ -98,11 +98,16 @@ class AIPlayer:
             return block_move
         
         # 3. 優先走中心位置
-        if 4 in available:
-            return 4
+        center_position = 4
+        if center_position in available:
+            return center_position
         
         # 4. 走角落位置
-        corners = [i for i in [0, 2, 6, 8] if i in available]
+        corner_positions = [0, 2, 6, 8] # 定義角落位置
+        corners = []
+        for pos in corner_positions:
+            if pos in available:
+                corners.append(pos)
         if corners:
             return random.choice(corners)
         
@@ -111,17 +116,17 @@ class AIPlayer:
     
     def _hard_move(self, board: List[Optional[str]], available: List[int]) -> int:
         """
-        困難模式：使用 Minimax 演算法
+        困難模式：使用 Minimax 走法
         
         Args:
             board: 棋盤狀態
-            available: 可用位置列表
+            available: 可用的位置
             
         Returns:
             int: 選擇的位置
         """
         _, best_move = self._minimax(board.copy(), self.symbol)
-        if best_move is None:
+        if best_move is None: #防止 None 發生
             return random.choice(available)
         return best_move
     
@@ -139,7 +144,7 @@ class AIPlayer:
         available = self._get_available_moves(board)
         for pos in available:
             # 模擬走這一步
-            test_board = board.copy()
+            test_board = board.copy() # 傳copy避免修改原board
             test_board[pos] = player
             # 檢查是否獲勝
             if self._check_winner(test_board) == player:
@@ -148,7 +153,7 @@ class AIPlayer:
     
     def _minimax(self, board: List[Optional[str]], player: str) -> tuple:
         """
-        Minimax 演算法實現
+        使用Minimax 演算法
         
         Args:
             board: 棋盤狀態
@@ -171,29 +176,38 @@ class AIPlayer:
         
         # O 的回合（最大化）
         if player == self.symbol:
-            best_score = -999
-            best_move = None
-            for move in available:
-                board[move] = self.symbol
-                score, _ = self._minimax(board, Player.X.value)
-                board[move] = None
-                if score > best_score:
-                    best_score = score
+            best_score = -999 # 初始化為極小值，任何分數都會比這個大
+            best_move = None # 初始化最佳位置
+
+            # 遍歷所有可用位置，找出分數最高的位置
+            for move in available: # 例如遍歷剩餘位置 eg. [0, 3, 5]
+                board[move] = self.symbol  # 模擬：AI 下在這個位置
+                score, _ = self._minimax(board, Player.X.value) # 遞迴：假設 AI 下了這步後，輪到對手 (X)，看對手會得多少分
+
+                board[move] = None #恢復棋盤，準備試下一個位置
+
+                # 更新最佳分數和位置（AI 要找分數最高的）
+                if score > best_score: # 找到更好的走法，更新分數跟位置
+                    best_score = score 
                     best_move = move
-            return (best_score, best_move)
+            return (best_score, best_move) # 返回 AI 的最佳選擇：(最高分, 對應位置)
         
         # X 的回合（最小化）
         else:
-            best_score = 999
+            best_score = 999 # 初始化為極大值，任何分數都會比這個小
             best_move = None
             for move in available:
                 board[move] = Player.X.value
-                score, _ = self._minimax(board, self.symbol)
+                score, _ = self._minimax(board, self.symbol) # 遞迴：假設對手下了這步後，輪到 AI (O)，看 AI 會得多少分
                 board[move] = None
-                if score < best_score:
+
+                # 更新最低分數和位置（要找讓 AI 得分最低的）
+                if score < best_score: # 找到對 AI 更不利的走法
                     best_score = score
                     best_move = move
-            return (best_score, best_move)
+            
+             # 這個最低分會返回給上一層的 AI，告訴 AI「如果你走這步，對手會讓你得這麼多分」
+            return (best_score, best_move) # 返回對手的選擇：(最低分, 對應位置)
     
     def _check_winner(self, board: List[Optional[str]]) -> Optional[str]:
         """
@@ -213,11 +227,11 @@ class AIPlayer:
         
         for condition in win_conditions:
             a, b, c = condition
-            if (board[a] is not None and 
+            if (board[a] is not None and  
                 board[a] == board[b] == board[c]):
-                return board[a]
-        
-        # 檢查平局
+                return board[a] # 返回贏家符號 O 或 X
+
+        # 檢查平局 -> 是否全部格子都被填滿
         if all(cell is not None for cell in board):
             return 'Draw'
         

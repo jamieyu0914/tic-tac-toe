@@ -7,7 +7,7 @@
         body { font-family: Arial, sans-serif; text-align: center; }
         .container { display: flex; justify-content: center; align-items: flex-start; margin-top: 30px; }
         .game-area { flex: 0 0 300px; }
-        .board { display: grid; grid-template-columns: repeat(3, 80px); grid-gap: 5px; margin: 0 auto 20px auto; width: 255px; }
+        .board { display: grid; grid-template-columns: repeat(3, 80px); grid-gap: 5px; margin: 20px auto 20px auto; width: 255px; }
         .cell { width: 80px; height: 80px; font-size: 2.5em; cursor: pointer; background: #f0f0f0; border: 2px solid #333; }
         .cell:disabled { background: #ddd; cursor: not-allowed; }
         .info { margin: 20px; font-size: 1.2em; }
@@ -23,17 +23,29 @@
 </head>
 <body>
     {% include 'navbar.html' %}
-    <div class="container">
+    <div class="container">                                                                                                                                                                                                                                                                                                                                                                                                                                                         
         <div class="game-area">
             <div class="info">
-                {% if winner %}
+                {% if winner %} <!-- 遊戲結束 -->
                     {% if winner == 'Draw' %}
-                        <b>It's a Draw!</b>
-                    {% else %}
-                        <b>Winner: {{ winner }}</b>
+                        <b>平手!</b>
+                    {% else %} <!-- 有贏家 -->
+                        <b>贏家: 
+                        {% if mode == 'computer' %} <!-- 電腦對戰模式 -->
+                            {% if winner == 'X' %}
+                                {{ username }} ({{ winner }})
+                            {% else %}
+                                電腦({{ difficulty_name }}) ({{ winner }})
+                            {% endif %}
+                        {% else %} <!-- PvP 模式 -->
+                            {{ winner }}
+                        {% endif %}
+                        </b>
                     {% endif %}
-                {% else %}
-                    Turn: <b>{{ turn }}</b>
+                {% elif started %} <!-- 遊戲進行中 -->
+                    輪到: <b>{{ turn }}</b>
+                {% else %} <!-- 尚未開始遊戲 -->
+                    請選擇模式並開始遊戲 
                 {% endif %}
             </div>
             <div class="mode-select">
@@ -41,15 +53,17 @@
                     <label>
                         <input type="radio" name="mode" value="computer" {% if mode == 'computer' %}checked{% endif %}> 電腦對戰
                     </label>
+                    {% if mode == 'computer' %}
                     <select name="difficulty">
                         <option value="simple" {% if difficulty == 'simple' %}selected{% endif %}>簡單</option>
                         <option value="normal" {% if difficulty == 'normal' %}selected{% endif %}>普通</option>
                         <option value="hard" {% if difficulty == 'hard' %}selected{% endif %}>困難</option>
                     </select>
+                    {% endif %}
                     <label>
                         <input type="radio" name="mode" value="pvp" {% if mode == 'pvp' %}checked{% endif %}> 玩家對戰
-                    </label>
-                    <button type="submit" name="action" value="set_mode">設定模式</button>
+                    </label><br>
+                    <button type="submit" name="action" value="set_mode" style="margin-top: 20px;">設定對戰</button>
                 </form>
                 {% if mode == 'pvp' %}
                     <div id="pvp-status"></div>
@@ -60,7 +74,7 @@
                 {# Computer mode #}
                 {% if not started %}
                     <div style="margin:16px">
-                        <p><b>請先選擇 遊戲模式，然後按「開始遊戲」進入遊戲畫面。</b></p>
+                        <p><b>請先選擇難度，再點擊「設定對戰」，按下「開始遊戲」，立即加入遊戲。</b></p>
                         <form method="post">
                             <button type="submit" name="action" value="start_game">開始遊戲</button>
                         </form>
@@ -75,14 +89,16 @@
                             {% endfor %}
                         </div>
                     </form>
-                    <button class="reset-btn" id="reset-btn" type="button" onclick="window.location.href='{{ url_for('reset') }}'">Restart Game</button>
+                    <form method="get" action="{{ url_for('reset') }}" style="display: inline;">
+                        <button class="reset-btn" type="submit">重新開始遊戲</button>
+                    </form>
                 {% endif %}
             {% else %}
                 {# PvP mode #}
                 <div style="margin:16px">
                     {% if not started %}
                         <p><b>請按「開始配對」尋找對手。</b></p>
-                        <button id="start-pvp-btn" type="button">開始配對</button>
+                        <button id="start-pvp-btn" type="button" onclick="startPvp()">開始配對</button>
                     {% endif %}
                 </div>
                 <div class="board" id="game-board" {% if not started %}style="display:none;"{% endif %}>
@@ -92,7 +108,11 @@
                         </button>
                     {% endfor %}
                 </div>
-                <button class="reset-btn" id="reset-btn" type="button" style="{% if not started %}display:none;{% endif %}">Restart Game</button>
+                {% if not started %}
+                    <button class="reset-btn" id="reset-btn" type="button" style="display:none;" onclick="resetGame()">重新開始遊戲</button>
+                {% else %}
+                    <button class="reset-btn" id="reset-btn" type="button" onclick="resetGame()">重新開始遊戲</button>
+                {% endif %}
             {% endif %}
         </div>
         {% if mode != 'computer' %}
@@ -101,7 +121,7 @@
             <div id="chat-messages" class="chat-messages"></div>
             <div class="chat-input-area">
                 <input id="chat-input" class="chat-input" type="text" placeholder="輸入訊息..." autocomplete="off" />
-                <button id="chat-send" class="chat-send">送出</button>
+                <button id="chat-send" class="chat-send" onclick="sendMessage()">送出</button>
             </div>
         </div>
         {% endif %}
@@ -131,15 +151,12 @@
             }
         }
 
-        if (chatSend) {
-            chatSend.onclick = function(e) {
-                e.preventDefault();
-                const msg = chatInput.value.trim();
-                if (msg) {
-                    socket.emit('chat message', msg);
-                    chatInput.value = '';
-                }
-            };
+        function sendMessage() {
+            const msg = chatInput.value.trim();
+            if (msg) {
+                socket.emit('chat message', msg);
+                chatInput.value = '';
+            }
         }
         
         if (chatInput) {
@@ -155,15 +172,20 @@
         });
 
         // PvP game logic
+        function startPvp() {
+            socket.emit('join_pvp');
+            startPvpBtn.disabled = true;
+            startPvpBtn.textContent = '配對中...';
+            if (pvpStatus) pvpStatus.textContent = '正在尋找對手...';
+        }
+
+        function resetGame() {
+            socket.emit('reset_game');
+            gameActive = true;
+            updateTurnDisplay();
+        }
+
         if (mode === 'pvp') {
-            if (startPvpBtn) {
-                startPvpBtn.onclick = function() {
-                    socket.emit('join_pvp');
-                    startPvpBtn.disabled = true;
-                    startPvpBtn.textContent = '配對中...';
-                    if (pvpStatus) pvpStatus.textContent = '正在尋找對手...';
-                };
-            }
 
             socket.on('waiting_for_opponent', function(data) {
                 if (pvpStatus) pvpStatus.innerHTML = '<b>等待對手加入...</b>';
@@ -228,6 +250,29 @@
             socket.on('opponent_left', function() {
                 if (pvpStatus) pvpStatus.innerHTML = '<b>對手已離開</b>';
                 gameActive = false;
+                // 讓配對按鈕恢復可用
+                if (startPvpBtn) {
+                    startPvpBtn.disabled = false;
+                    startPvpBtn.textContent = '開始配對';
+                }
+                // 禁用棋盤
+                if (gameBoard) {
+                    const cells = gameBoard.querySelectorAll('.cell');
+                    cells.forEach(cell => {
+                        cell.disabled = true;
+                        cell.textContent = '';
+                    });
+                    gameBoard.style.display = 'none'; // 隱藏棋盤
+                }
+                // 隱藏重新開始按鈕
+                if (resetBtn) {
+                    resetBtn.style.display = 'none';
+                }
+                // 顯示系統訊息
+                appendMessage('[系統提示] 您的對手落荒而逃，遊戲結束。');
+                // 更新 info 區塊
+                const infoDiv = document.querySelector('.info');
+                if (infoDiv) infoDiv.innerHTML = '';
             });
 
             // Handle cell clicks for PvP
@@ -240,15 +285,6 @@
                         }
                     }
                 });
-            }
-
-            // Handle reset button for PvP
-            if (resetBtn) {
-                resetBtn.onclick = function() {
-                    socket.emit('reset_game');
-                    gameActive = true;
-                    updateTurnDisplay();
-                };
             }
 
             function updateBoard(board) {
