@@ -153,7 +153,7 @@ def home():
     }
     
     return render_template(
-        'game.html',
+        'index.html',
         board=state['board'], # 棋盤狀態
         turn=state['turn'], # 輪到誰?
         winner=state['winner'], # 贏家 
