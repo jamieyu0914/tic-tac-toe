@@ -3,23 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <title>Tic-Tac-Toe</title>
-    <style>
-        body { font-family: Arial, sans-serif; text-align: center; }
-        .container { display: flex; justify-content: center; align-items: flex-start; margin-top: 30px; }
-        .game-area { flex: 0 0 300px; }
-        .board { display: grid; grid-template-columns: repeat(3, 80px); grid-gap: 5px; margin: 20px auto 20px auto; width: 255px; }
-        .cell { width: 80px; height: 80px; font-size: 2.5em; cursor: pointer; background: #f0f0f0; border: 2px solid #333; }
-        .cell:disabled { background: #ddd; cursor: not-allowed; }
-        .info { margin: 20px; font-size: 1.2em; }
-        .reset-btn { margin-top: 20px; padding: 8px 20px; font-size: 1em; }
-        .chatroom { flex: 0 0 320px; margin-left: 40px; background: #fafafa; border: 1px solid #ccc; border-radius: 8px; padding: 16px; box-shadow: 0 2px 8px #eee; }
-        .chat-messages { height: 320px; overflow-y: auto; border: 1px solid #ddd; background: #fff; padding: 8px; margin-bottom: 12px; border-radius: 4px; text-align: left; }
-        .chat-input-area { display: flex; }
-        .chat-input { flex: 1; padding: 6px; font-size: 1em; border-radius: 4px; border: 1px solid #ccc; }
-        .chat-send { margin-left: 8px; padding: 6px 16px; font-size: 1em; border-radius: 4px; border: none; background: #333; color: #fff; cursor: pointer; }
-        .chat-send:hover { background: #ffd600; color: #333; border-color: #ffd600; }
-        .chat-send:disabled { background: #aaa; cursor: not-allowed; }
-    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/navbar.css') }}">
 </head>
 <body>
     {% include 'navbar.html' %}
@@ -39,11 +24,14 @@
                 {% endif %}
             </div>
                 {# PvP mode #}
-                <div style="margin:16px">
-                    {% if not started %}
+                <div class="pvp-info" style="margin:16px">
+                    <div class="pvp-search">
                         <p><b>請按「開始配對」尋找對手。</b></p>
                         <button id="start-pvp-btn" type="button" onclick="startPvp()">開始配對</button>
-                    {% endif %}
+                    </div>
+                    <span id="pvp-status"></span>
+                    <div id="pvp-score" style="margin-top:8px; font-weight:bold;"></div>
+                    <div id="pvp-players" style="margin-top:8px;"></div>
                 </div>
                 <div class="board" id="game-board" {% if not started %}style="display:none;"{% endif %}>
                     {% for i in range(9) %}
@@ -82,6 +70,16 @@
         let mySymbol = null;
         let currentTurn = 'X';
         let gameActive = false;
+        let myWins = 0;
+        let myLosses = 0;
+        let roundCount = 0;
+        let mySide = null; // 'left' or 'right'
+        let leftPlayer = null;
+        let rightPlayer = null;
+        let leftWins = 0;
+        let rightWins = 0;
+        let leftDraws = 0;
+        let rightDraws = 0;
 
         function appendMessage(msg) {
             if (chatMessages) {
@@ -135,15 +133,16 @@
 
             socket.on('game_start', function(data) {
                 if (pvpStatus) {
-                    pvpStatus.innerHTML = '<b>遊戲開始！</b><br>' + 
-                        data.players.map(p => `${p.username} (${p.symbol})`).join(' vs ');
+                    document.querySelector('.pvp-search').style.display = 'none';
                 }
-                // Server tells us our symbol
+                // 隨機分配左右，左玩家先手
+                // 伺服器需傳遞 left_player, right_player, my_side
+                leftPlayer = data.left_player;
+                rightPlayer = data.right_player;
+                mySide = data.my_side; // 'left' or 'right'
                 mySymbol = data.your_symbol;
-                
                 currentTurn = data.turn;
                 gameActive = true;
-                
                 // Show the game board and reset button
                 if (gameBoard) {
                     gameBoard.style.display = 'grid';
@@ -151,28 +150,40 @@
                 if (resetBtn) {
                     resetBtn.style.display = 'inline-block';
                 }
-                
                 updateBoard(data.board);
                 updateTurnDisplay();
+                updateScoreDisplay();
+                updatePlayersDisplay();
             });
 
             socket.on('game_update', function(data) {
                 updateBoard(data.board);
                 currentTurn = data.turn;
-                
                 if (data.winner) {
                     gameActive = false;
+                    roundCount++;
                     const infoDiv = document.querySelector('.info');
                     if (data.winner === 'Draw') {
                         if (pvpStatus) pvpStatus.innerHTML = '<b>平手！</b>';
                         if (infoDiv) infoDiv.innerHTML = '<b>平手！</b>';
+                        leftDraws++;
+                        rightDraws++;
                     } else {
                         if (pvpStatus) pvpStatus.innerHTML = `<b>贏家: ${data.winner}</b>`;
                         if (infoDiv) {
-                            if (data.winner === mySymbol) {
+                            if (mySide === 'left' && data.winner === 'X') {
                                 infoDiv.innerHTML = '<b style="color: green;">你贏了！🎉</b>';
+                                myWins++;
+                                leftWins++;
+                            } else if (mySide === 'right' && data.winner === 'O') {
+                                infoDiv.innerHTML = '<b style="color: green;">你贏了！🎉</b>';
+                                myWins++;
+                                rightWins++;
                             } else {
                                 infoDiv.innerHTML = '<b style="color: red;">你輸了！</b>';
+                                myLosses++;
+                                if (mySide === 'left') rightWins++;
+                                else leftWins++;
                             }
                         }
                     }
@@ -181,6 +192,8 @@
                         const cells = gameBoard.querySelectorAll('.cell');
                         cells.forEach(cell => cell.disabled = true);
                     }
+                    updateScoreDisplay();
+                    updatePlayersDisplay();
                 } else {
                     // Game continues, update turn display
                     gameActive = true;
@@ -245,6 +258,23 @@
                     } else {
                         infoDiv.innerHTML = '<b>等待對手...</b>';
                     }
+                }
+            }
+
+            function updateScoreDisplay() {
+                const scoreDiv = document.getElementById('pvp-score');
+                if (scoreDiv) {
+                    scoreDiv.innerHTML = `回合制：5戰3勝｜目前回合：${roundCount}`;
+                }
+            }
+
+            function updatePlayersDisplay() {
+                const playersDiv = document.getElementById('pvp-players');
+                if (playersDiv) {
+                    playersDiv.innerHTML =
+                        `<span class="left-player">左玩家：${leftWins}</span>｜平手：${leftDraws}` +
+                        '｜' +
+                        `<span class="right-player">右玩家：${rightWins}</span>`;
                 }
             }
         }

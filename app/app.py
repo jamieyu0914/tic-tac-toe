@@ -159,7 +159,7 @@ def home():
         winner=state['winner'], # 贏家 
         mode=state['mode'], # pvp
         username=session.get('user', '玩家'),
-        started=state['started']
+        started=state['started'], # 遊戲是否開始
     )
 
 # 重置遊戲
