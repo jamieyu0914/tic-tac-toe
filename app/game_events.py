@@ -51,14 +51,24 @@ def register_game_events(socketio):
                 time.sleep(0.5)  # 確保訊息順序
                 emit('chat message', f'[系統提示] 強勁的棋手 {username} 已抵達戰場!', room=room_id)
                 
-                # 通知每位玩家遊戲開始（包含各自的符號）
+                # 隨機分配左右，符號不固定
+                import random
+                players = room.players[:]
+                left_player = random.choice(players)
+                right_player = [p for p in players if p != left_player][0]
+                room_state['started'] = True
                 for player in room.players:
+                    my_side = 'left' if player == left_player else 'right'
                     emit('game_start', {
                         'room_id': room_id,
                         'players': room_state['players'],
                         'board': room_state['board'],
                         'turn': room_state['turn'],
-                        'your_symbol': player.symbol
+                        'your_symbol': player.symbol,
+                        'started': True,
+                        'left_player': {'username': left_player.username, 'sid': left_player.sid, 'symbol': left_player.symbol},
+                        'right_player': {'username': right_player.username, 'sid': right_player.sid, 'symbol': right_player.symbol},
+                        'my_side': my_side
                     }, room=player.sid)
         else:
             # 創建新房間

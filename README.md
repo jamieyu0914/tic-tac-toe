@@ -26,7 +26,7 @@
 3. 執行：`pip install flask_cors`
 
 ## 啟動應用程式
-1. 在終端機啟用 venv 後
+1. 在終端機啟用 venv 後，移動至 `cd app/`
 2. 執行：`python app.py`
 3. 或用 Flask 指令：`flask --app app run` 或 `flask run`
 

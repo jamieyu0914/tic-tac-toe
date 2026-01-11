@@ -112,32 +112,13 @@ def login():
     return render_template('login.html', error=error, icons=icons)
 
 
-# 首頁（需要登入）
-@app.route('/')
+# 首頁 / 遊戲主頁（需要登入）
+@app.route('/', methods=['GET', 'POST'])
 def home():
     """
     首頁處理
-    - 顯示主題選擇（聖誕或新年主題）
-    - 需要登入才能訪問
-    """
-    if 'user' not in session:
-        return redirect(url_for('login'))
-    
-    # 隨機選擇主題（如果 URL 沒有指定）
-    theme = request.args.get('theme', '').lower()
-    if not theme:
-        theme = random.choice(['christmas', 'newyear'])
-    
-    return render_template('index.html', user=session['user'], theme=theme)
-
-
-# 遊戲頁面（需要登入）
-@app.route('/game', methods=['GET', 'POST'])
-def game():
-    """
-    遊戲頁面處理
     - GET: 顯示遊戲界面
-    - POST: 處理遊戲操作（模式設置、開始遊戲、移動棋子）
+    - POST: 處理遊戲操作（模式設置、開始遊戲）
     """
     if 'user' not in session:
         return redirect(url_for('login'))
@@ -150,39 +131,16 @@ def game():
         
         # 設置遊戲模式
         if action == 'set_mode':
-            mode = request.form.get('mode', 'computer')
-            difficulty = request.form.get('difficulty', 'normal')
-            game_instance.set_mode(mode, difficulty)
+            mode = request.form.get('mode', 'pvp')
+            game_instance.set_mode(mode)
             save_game(game_instance)
-            return redirect(url_for('game'))
         
         # 開始遊戲
         elif action == 'start_game':
             game_instance.start()
             save_game(game_instance)
-            return redirect(url_for('game'))
-        
-        # 玩家移動（僅限電腦模式）
-        elif 'cell' in request.form and game_instance.mode == 'computer':
-            try:
-                position = int(request.form['cell'])
-                
-                # 玩家移動
-                if game_instance.make_move(position):
-                    save_game(game_instance) # 保存玩家移動後的狀態
-                    
-                    # AI 回應（如果遊戲還未結束）
-                    if not game_instance.winner and game_instance.turn == 'O':
-                        ai = AIPlayer(game_instance.difficulty) # 每次根據當前棋盤重新計算
-                        ai_move = ai.get_move(game_instance.board)
-                        if ai_move is not None:
-                            game_instance.make_move(ai_move)
-                            save_game(game_instance)
             
-            except (ValueError, TypeError):
-                pass
-            
-            return redirect(url_for('game'))
+            return redirect(url_for('home'))
     
     # 準備模板數據
     state = game_instance.get_state()
@@ -195,17 +153,14 @@ def game():
     }
     
     return render_template(
-        'game.html',
+        'index.html',
         board=state['board'], # 棋盤狀態
         turn=state['turn'], # 輪到誰?
         winner=state['winner'], # 贏家 
-        mode=state['mode'], # pvp or computer
-        difficulty=state['difficulty'], # AI 難度
-        difficulty_name=difficulty_names.get(state['difficulty'], '普通'),
+        mode=state['mode'], # pvp
         username=session.get('user', '玩家'),
-        started=state['started']
+        started=state['started'], # 遊戲是否開始
     )
-
 
 # 重置遊戲
 @app.route('/reset')
@@ -214,18 +169,17 @@ def reset():
     if 'game_state' in session:
         # 保留當前模式和難度設定
         current_state = session['game_state']
-        mode = current_state.get('mode', 'computer')
-        difficulty = current_state.get('difficulty', 'normal')
+        mode = current_state.get('mode', 'pvp')
         
         # 創建新遊戲但保留設定
         game = Game()
-        game.set_mode(mode, difficulty)
+        game.set_mode(mode)
         game.start()
         save_game(game)
     else:
         session.pop('game_state', None)
     
-    return redirect(url_for('game'))
+    return redirect(url_for('home'))
 
 
 # 登出

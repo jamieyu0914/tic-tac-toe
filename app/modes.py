@@ -48,31 +48,3 @@ def minimax(board, player):
                 best_score = score
                 best_move = m
         return (best_score, best_move)
-
-
-def computer_move(board, difficulty):
-    moves = available_moves(board)
-    if not moves:
-        return None
-    # simple: random
-    if difficulty == 'simple':
-        return random.choice(moves)
-    # normal: win > block > center > corner > random
-    if difficulty == 'normal':
-        win = find_winning_move(board, 'O')
-        if win is not None:
-            return win
-        block = find_winning_move(board, 'X')
-        if block is not None:
-            return block
-        if 4 in moves:
-            return 4
-        corners = [i for i in [0,2,6,8] if i in moves]
-        if corners:
-            return random.choice(corners)
-        return random.choice(moves)
-    # hard: minimax
-    _, move = minimax(board.copy(), 'O')
-    if move is None:
-        return random.choice(moves)
-    return move

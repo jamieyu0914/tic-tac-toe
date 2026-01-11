@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <title>登入 - Tic-Tac-Toe</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/navbar.css') }}">
+  </head>
+  <body>
+    {% include 'navbar.html' %}
+    <div class="login-container">
+      <h2>登入 Tic-Tac-Toe</h2>
+      {% if error %}
+      <div class="error">{{ error }}</div>
+      {% endif %}
+      <form method="post">
+        <input
+          type="text"
+          name="username"
+          placeholder="使用者名稱"
+          required
+          autofocus
+          value="{{ request.form.username if request.form.username }}"
+        />
+
+        <div style="margin: 8px 0 4px 0; font-size: 0.95em; color: #333">
+          請選擇一個圖示作為你的身份：
+        </div>
+        <div class="icons-row">
+          {% for ic in icons %}
+          <label class="icon-label">
+            <input type="radio" name="icon" value="{{ ic }}"
+              {% if ic == selected_icon %}checked{% endif %} />
+            <span class="icon">{{ ic }}</span>
+          </label>
+          {% endfor %}
+        </div>
+
+        <button type="submit">登入</button>
+      </form>
+    </div>
+    <script>
+      // 功能: 高亮顯示選中的圖示
+      document.addEventListener("click", function (e) {
+        if (e.target.closest(".icon-label")) {
+          document
+            .querySelectorAll(".icon-label")
+            .forEach((l) => l.classList.remove("selected")); //移除藍色邊框效果
+          e.target.closest(".icon-label").classList.add("selected"); //選中的標籤加上藍邊框效果
+        }
+      });
+      // 頁面載入時高亮已選中的圖示
+      document.addEventListener("DOMContentLoaded", function () {
+        const checked = document.querySelector('input[name="icon"]:checked');
+        if (checked) {
+          checked.closest(".icon-label").classList.add("selected");
+        }
+      });
+    </script>
+  </body>
+</html>

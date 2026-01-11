@@ -9,7 +9,6 @@ from typing import Optional, List
 
 class GameMode(Enum):
     """遊戲模式枚舉"""
-    COMPUTER = "computer"  # 人機對戰
     PVP = "pvp"           # 玩家對戰
 
 
@@ -55,8 +54,7 @@ class Game:
         self.board: List[Optional[str]] = [None] * 9  # 棋盤（9格）
         self.turn: str = Player.X.value              # 當前回合（X 先手）
         self.winner: Optional[str] = None             # 勝者
-        self.mode: str = GameMode.COMPUTER.value      # 遊戲模式
-        self.difficulty: str = Difficulty.NORMAL.value # AI 難度
+        self.mode: str = GameMode.PVP.value      # 遊戲模式
         self.started: bool = False                    # 遊戲是否已開始
     
     def reset(self):
@@ -71,12 +69,9 @@ class Game:
         設置遊戲模式
         
         Args:
-            mode: 遊戲模式 ('computer' 或 'pvp')
-            difficulty: AI 難度（僅在 computer 模式下有效）
+            mode: 'pvp'
         """
         self.mode = mode
-        if mode == GameMode.COMPUTER.value and difficulty:
-            self.difficulty = difficulty
         self.reset()
     
     def start(self):
@@ -176,8 +171,7 @@ class Game:
             'board': self.board.copy(),    # 棋盤狀態
             'turn': self.turn,             # 紀錄當前回合玩家
             'winner': self.winner,         # None, 'X', 'O', 'Draw'
-            'mode': self.mode,             # 'computer' 或 'pvp'
-            'difficulty': self.difficulty, # AI 難度
+            'mode': self.mode,             # 'pvp'
             'started': self.started        # 遊戲是否已開始
         }
     
@@ -191,6 +185,5 @@ class Game:
         self.board = state.get('board', [None] * 9)
         self.turn = state.get('turn', Player.X.value)
         self.winner = state.get('winner')
-        self.mode = state.get('mode', GameMode.COMPUTER.value)
-        self.difficulty = state.get('difficulty', Difficulty.NORMAL.value)
+        self.mode = state.get('mode')
         self.started = state.get('started', False)
