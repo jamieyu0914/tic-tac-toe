@@ -36,6 +36,12 @@ def register_game_events(socketio):
         room_id = room_manager.get_available_room()
         
         if room_id:
+            # 檢查房間是否已滿
+            room = room_manager.get_room(room_id)
+            if room and len(room.players) >= 2:
+                emit('room_full', {'message': '房間已滿，請稍後再試'})
+                return
+            
             # 加入現有房間
             success = room_manager.join_room(room_id, sid, username)
             if success:
@@ -51,25 +57,28 @@ def register_game_events(socketio):
                 time.sleep(0.5)  # 確保訊息順序
                 emit('chat message', f'[系統提示] 強勁的棋手 {username} 已抵達戰場!', room=room_id)
                 
-                # 隨機分配左右，符號不固定
-                import random
-                players = room.players[:]
-                left_player = random.choice(players)
-                right_player = [p for p in players if p != left_player][0]
-                room_state['started'] = True
+                # 使用隨機分配的座位和符號
+                left_player = room_state['left_player']
+                right_player = room_state['right_player']
+                
+                # 左玩家先手
+                first_turn = left_player['symbol']
+                room.game.turn = first_turn
+                
                 for player in room.players:
-                    my_side = 'left' if player == left_player else 'right'
+                    my_side = 'left' if player.sid == left_player['sid'] else 'right'
                     emit('game_start', {
                         'room_id': room_id,
-                        'players': room_state['players'],
-                        'board': room_state['board'],
-                        'turn': room_state['turn'],
                         'your_symbol': player.symbol,
-                        'started': True,
-                        'left_player': {'username': left_player.username, 'sid': left_player.sid, 'symbol': left_player.symbol},
-                        'right_player': {'username': right_player.username, 'sid': right_player.sid, 'symbol': right_player.symbol},
-                        'my_side': my_side
+                        'turn': first_turn,
+                        'left_player': left_player,
+                        'right_player': right_player,
+                        'my_side': my_side,
+                        'scores': room_state['scores'],
+                        'round_count': room_state['round_count']
                     }, room=player.sid)
+            else:
+                emit('room_full', {'message': '房間已滿，請稍後再試'})
         else:
             # 創建新房間
             room_id = room_manager.create_room(sid, username)
@@ -80,13 +89,18 @@ def register_game_events(socketio):
     @socketio.on('make_move')
     def handle_make_move(data):
         """
-        處理玩家移動
+        處理玩家移動（使用座標方式）
         
         Args:
-            data: 包含移動資訊的字典 {'cell': position}
+            data: 包含移動資訊的字典 {'row': 行座標, 'col': 列座標}
         """
         sid = request.sid
-        cell_index = data.get('cell')
+        row = data.get('row')
+        col = data.get('col')
+        
+        # 驗證座標
+        if row is None or col is None or not (0 <= row <= 2) or not (0 <= col <= 2):
+            return
         
         # 獲取玩家所在房間
         room_id = room_manager.get_room_by_sid(sid)
@@ -94,31 +108,86 @@ def register_game_events(socketio):
             return
         
         # 執行移動
-        room_state = room_manager.make_move(room_id, sid, cell_index)
+        room_state = room_manager.make_move(room_id, sid, row, col)
         if room_state:
-            # 廣播更新後的遊戲狀態給房間內所有玩家
-            emit('game_update', {
-                'board': room_state['board'],
-                'turn': room_state['turn'],
-                'winner': room_state['winner']
+            # 只廣播必要的更新資訊
+            emit('move_made', {
+                'row': row,
+                'col': col,
+                'symbol': room_state['board'][row * 3 + col],
+                'turn': room_state['turn']
             }, room=room_id)
+            
+            # 如果遊戲結束，發送結束資訊
+            if room_state['winner']:
+                winning_lines = get_winning_lines(room_state['board'])
+                emit('round_end', {
+                    'winner': room_state['winner'],
+                    'scores': room_state['scores'],
+                    'round_count': room_state['round_count'],
+                    'match_finished': room_state['match_finished'],
+                    'winning_lines': winning_lines
+                }, room=room_id)
     
     @socketio.on('reset_game')
     def handle_reset_game():
         """
-        處理遊戲重置請求
+        處理遊戲重置請求（下一回合）
         """
         sid = request.sid
         room_id = room_manager.get_room_by_sid(sid)
         
         if room_id:
-            room_state = room_manager.reset_room(room_id)
-            if room_state:
-                # 廣播重置後的遊戲狀態
-                emit('game_update', {
-                    'board': room_state['board'],
+            room = room_manager.get_room(room_id)
+            if room:
+                room.reset()
+                room_state = room.get_state()
+                
+                # 只發送必要的重置資訊
+                emit('game_reset', {
                     'turn': room_state['turn'],
-                    'winner': room_state['winner']
+                    'scores': room_state['scores'],
+                    'round_count': room_state['round_count'],
+                    'match_finished': room_state['match_finished'],
+                    'current_first_player': room_state['current_first_player']
+                }, room=room_id)
+    
+    @socketio.on('start_new_match')
+    def handle_start_new_match():
+        """
+        處理開始新比賽請求（新的5戰3勝）
+        """
+        sid = request.sid
+        room_id = room_manager.get_room_by_sid(sid)
+        
+        if room_id:
+            room = room_manager.get_room(room_id)
+            if room:
+                # 重置所有分數和回合數
+                room.scores = {'left': 0, 'right': 0, 'draw': 0}
+                room.round_count = 0
+                room.match_finished = False
+                
+                # 重新隨機分配座位和符號
+                room._assign_seats_and_symbols()
+                
+                # 重置遊戲
+                room.game.reset()
+                room.game.turn = room.left_player.symbol
+                room.game.started = True
+                room.current_first_player = 'left'
+                
+                room_state = room.get_state()
+                
+                # 發送新比賽開始資訊
+                emit('new_match_started', {
+                    'turn': room_state['turn'],
+                    'scores': room_state['scores'],
+                    'round_count': room_state['round_count'],
+                    'match_finished': room_state['match_finished'],
+                    'left_player': room_state['left_player'],
+                    'right_player': room_state['right_player'],
+                    'current_first_player': room_state['current_first_player']
                 }, room=room_id)
     
     @socketio.on('disconnect')
@@ -133,3 +202,30 @@ def register_game_events(socketio):
         if room_id:
             # 通知對手玩家已離開
             emit('opponent_left', room=room_id)
+
+def get_winning_lines(board):
+    """
+    獲取獲勝的連線（座標方式）
+    
+    Returns:
+        list: 獲勝連線的座標列表，例如 [[[0,0], [0,1], [0,2]]]
+    """
+    win_conditions = [
+        [[0, 0], [0, 1], [0, 2]],  # 第一行
+        [[1, 0], [1, 1], [1, 2]],  # 第二行
+        [[2, 0], [2, 1], [2, 2]],  # 第三行
+        [[0, 0], [1, 0], [2, 0]],  # 第一列
+        [[0, 1], [1, 1], [2, 1]],  # 第二列
+        [[0, 2], [1, 2], [2, 2]],  # 第三列
+        [[0, 0], [1, 1], [2, 2]],  # 主對角線
+        [[0, 2], [1, 1], [2, 0]]   # 副對角線
+    ]
+    
+    winning_lines = []
+    for line in win_conditions:
+        positions = [row * 3 + col for row, col in line]
+        if (board[positions[0]] is not None and 
+            board[positions[0]] == board[positions[1]] == board[positions[2]]):
+            winning_lines.append(line)
+    
+    return winning_lines

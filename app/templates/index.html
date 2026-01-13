@@ -8,43 +8,57 @@
 </head>
 <body>
     {% include 'navbar.html' %}
-    <div class="container">                                                                                                                                                                                                                                                                                                                                                                                                                                                         
+    <div class="container">
         <div class="game-area">
-            <div class="info">
-                {% if winner %} <!-- 遊戲結束 -->
-                    {% if winner == 'Draw' %}
-                        <b>平手!</b>
-                    {% else %} <!-- 有贏家 -->
-                        <b>贏家: 
-                            {{ winner }}
-                        </b>
-                    {% endif %}
-                {% elif started %} <!-- 遊戲進行中 -->
-                    輪到: <b>{{ turn }}</b>
-                {% endif %}
+            <!-- PvP 配對區 -->
+            <div class="pvp-info">
+                <div class="pvp-search">
+                    <p><b>請按「開始配對」尋找對手。</b></p>
+                    <button id="start-pvp-btn" type="button" onclick="startPvp()">開始配對</button>
+                </div>
             </div>
-                {# PvP mode #}
-                <div class="pvp-info" style="margin:16px">
-                    <div class="pvp-search">
-                        <p><b>請按「開始配對」尋找對手。</b></p>
-                        <button id="start-pvp-btn" type="button" onclick="startPvp()">開始配對</button>
+            
+            <!-- 戰績顯示區（參考截圖UI） -->
+            <div class="score-board" id="score-board">
+                <div class="player-score left-score">
+                    <div class="player-symbol" id="left-symbol">X</div>
+                    <div class="player-info">
+                        <div class="player-name" id="left-name">玩家1</div>
+                        <div class="score-number" id="left-score">0</div>
                     </div>
-                    <span id="pvp-status"></span>
-                    <div id="pvp-score" style="margin-top:8px; font-weight:bold;"></div>
-                    <div id="pvp-players" style="margin-top:8px;"></div>
                 </div>
-                <div class="board" id="game-board" {% if not started %}style="display:none;"{% endif %}>
-                    {% for i in range(9) %}
-                        <button class="cell" data-cell="{{ i }}" {% if board[i] or winner %}disabled{% else %}{% if not started %}disabled{% endif %}{% endif %}>
-                            {{ board[i] if board[i] else '' }}
-                        </button>
-                    {% endfor %}
+                <div class="vs-section">
+                    <div class="round-info" id="round-info">回合 1/5</div>
+                    <div class="vs-text">VS</div>
+                    <div class="draw-score">平手: <span id="draw-score">0</span></div>
                 </div>
-                {% if not started %}
-                    <button class="reset-btn" id="reset-btn" type="button" style="display:none;" onclick="resetGame()">重新開始遊戲</button>
-                {% else %}
-                    <button class="reset-btn" id="reset-btn" type="button" onclick="resetGame()">重新開始遊戲</button>
-                {% endif %}
+                <div class="player-score right-score">
+                    <div class="player-info">
+                        <div class="player-name" id="right-name">玩家2</div>
+                        <div class="score-number" id="right-score">0</div>
+                    </div>
+                    <div class="player-symbol" id="right-symbol">O</div>
+                </div>
+            </div>
+            
+            <!-- 遊戲狀態提示 -->
+            <div class="game-status" id="game-status"></div>
+            
+            <!-- 遊戲棋盤 -->
+            <div class="board" id="game-board">
+                <button class="cell" data-cell="0"></button>
+                <button class="cell" data-cell="1"></button>
+                <button class="cell" data-cell="2"></button>
+                <button class="cell" data-cell="3"></button>
+                <button class="cell" data-cell="4"></button>
+                <button class="cell" data-cell="5"></button>
+                <button class="cell" data-cell="6"></button>
+                <button class="cell" data-cell="7"></button>
+                <button class="cell" data-cell="8"></button>
+            </div>
+            
+            <!-- 重置按鈕 -->
+            <button class="reset-btn" id="reset-btn" type="button" onclick="resetGame()">下一回合</button>
         </div>
         <div class="chatroom">
             <h2>聊天室</h2>
@@ -55,229 +69,16 @@
             </div>
         </div>
     </div>
+    <!-- Socket.IO -->
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <!-- 遊戲邏輯 -->
+    <script src="{{ url_for('static', filename='js/game.js') }}"></script>
+    <!-- 初始化遊戲 -->
     <script>
-        const socket = io();
-        const chatMessages = document.getElementById('chat-messages');
-        const chatInput = document.getElementById('chat-input');
-        const chatSend = document.getElementById('chat-send');
-        const mode = "{{ mode }}";
-        const gameBoard = document.getElementById('game-board');
-        const pvpStatus = document.getElementById('pvp-status');
-        const startPvpBtn = document.getElementById('start-pvp-btn');
-        const resetBtn = document.getElementById('reset-btn');
-        
-        let mySymbol = null;
-        let currentTurn = 'X';
-        let gameActive = false;
-        let myWins = 0;
-        let myLosses = 0;
-        let roundCount = 0;
-        let mySide = null; // 'left' or 'right'
-        let leftPlayer = null;
-        let rightPlayer = null;
-        let leftWins = 0;
-        let rightWins = 0;
-        let leftDraws = 0;
-        let rightDraws = 0;
-
-        function appendMessage(msg) {
-            if (chatMessages) {
-                const div = document.createElement('div');
-                div.textContent = msg;
-                chatMessages.appendChild(div);
-                chatMessages.scrollTop = chatMessages.scrollHeight;
-            }
-        }
-
-        function sendMessage() {
-            const msg = chatInput.value.trim();
-            if (msg) {
-                socket.emit('chat message', msg);
-                chatInput.value = '';
-            }
-        }
-        
-        if (chatInput) {
-            chatInput.addEventListener('keydown', function(e) {
-                if (e.key === 'Enter') {
-                    chatSend.click();
-                }
-            });
-        }
-
-        socket.on('chat message', function(msg) {
-            appendMessage(msg);
+        // 頁面載入完成後初始化遊戲
+        document.addEventListener('DOMContentLoaded', function() {
+            initGame("{{ mode }}");
         });
-
-        // PvP game logic
-        function startPvp() {
-            socket.emit('join_pvp');
-            startPvpBtn.disabled = true;
-            startPvpBtn.textContent = '配對中...';
-            if (pvpStatus) pvpStatus.textContent = '正在尋找對手...';
-        }
-
-        function resetGame() {
-            socket.emit('reset_game');
-            gameActive = true;
-            updateTurnDisplay();
-        }
-
-        if (mode === 'pvp') {
-
-            socket.on('waiting_for_opponent', function(data) {
-                if (pvpStatus) pvpStatus.innerHTML = '<b>等待對手加入...</b>';
-                mySymbol = 'X';  // First player is always X
-            });
-
-            socket.on('game_start', function(data) {
-                if (pvpStatus) {
-                    document.querySelector('.pvp-search').style.display = 'none';
-                }
-                // 隨機分配左右，左玩家先手
-                // 伺服器需傳遞 left_player, right_player, my_side
-                leftPlayer = data.left_player;
-                rightPlayer = data.right_player;
-                mySide = data.my_side; // 'left' or 'right'
-                mySymbol = data.your_symbol;
-                currentTurn = data.turn;
-                gameActive = true;
-                // Show the game board and reset button
-                if (gameBoard) {
-                    gameBoard.style.display = 'grid';
-                }
-                if (resetBtn) {
-                    resetBtn.style.display = 'inline-block';
-                }
-                updateBoard(data.board);
-                updateTurnDisplay();
-                updateScoreDisplay();
-                updatePlayersDisplay();
-            });
-
-            socket.on('game_update', function(data) {
-                updateBoard(data.board);
-                currentTurn = data.turn;
-                if (data.winner) {
-                    gameActive = false;
-                    roundCount++;
-                    const infoDiv = document.querySelector('.info');
-                    if (data.winner === 'Draw') {
-                        if (pvpStatus) pvpStatus.innerHTML = '<b>平手！</b>';
-                        if (infoDiv) infoDiv.innerHTML = '<b>平手！</b>';
-                        leftDraws++;
-                        rightDraws++;
-                    } else {
-                        if (pvpStatus) pvpStatus.innerHTML = `<b>贏家: ${data.winner}</b>`;
-                        if (infoDiv) {
-                            if (mySide === 'left' && data.winner === 'X') {
-                                infoDiv.innerHTML = '<b style="color: green;">你贏了！🎉</b>';
-                                myWins++;
-                                leftWins++;
-                            } else if (mySide === 'right' && data.winner === 'O') {
-                                infoDiv.innerHTML = '<b style="color: green;">你贏了！🎉</b>';
-                                myWins++;
-                                rightWins++;
-                            } else {
-                                infoDiv.innerHTML = '<b style="color: red;">你輸了！</b>';
-                                myLosses++;
-                                if (mySide === 'left') rightWins++;
-                                else leftWins++;
-                            }
-                        }
-                    }
-                    // Disable all cells when game ends
-                    if (gameBoard) {
-                        const cells = gameBoard.querySelectorAll('.cell');
-                        cells.forEach(cell => cell.disabled = true);
-                    }
-                    updateScoreDisplay();
-                    updatePlayersDisplay();
-                } else {
-                    // Game continues, update turn display
-                    gameActive = true;
-                    updateTurnDisplay();
-                }
-            });
-
-            socket.on('opponent_left', function() {
-                if (pvpStatus) pvpStatus.innerHTML = '<b>對手已離開</b>';
-                gameActive = false;
-                // 讓配對按鈕恢復可用
-                if (startPvpBtn) {
-                    startPvpBtn.disabled = false;
-                    startPvpBtn.textContent = '開始配對';
-                }
-                // 禁用棋盤
-                if (gameBoard) {
-                    const cells = gameBoard.querySelectorAll('.cell');
-                    cells.forEach(cell => {
-                        cell.disabled = true;
-                        cell.textContent = '';
-                    });
-                    gameBoard.style.display = 'none'; // 隱藏棋盤
-                }
-                // 隱藏重新開始按鈕
-                if (resetBtn) {
-                    resetBtn.style.display = 'none';
-                }
-                // 顯示系統訊息
-                appendMessage('[系統提示] 您的對手落荒而逃，遊戲結束。');
-                // 更新 info 區塊
-                const infoDiv = document.querySelector('.info');
-                if (infoDiv) infoDiv.innerHTML = '';
-            });
-
-            // Handle cell clicks for PvP
-            if (gameBoard) {
-                gameBoard.addEventListener('click', function(e) {
-                    if (e.target.classList.contains('cell')) {
-                        const cell = parseInt(e.target.dataset.cell);
-                        if (gameActive && currentTurn === mySymbol && !e.target.disabled) {
-                            socket.emit('make_move', { cell: cell });
-                        }
-                    }
-                });
-            }
-
-            function updateBoard(board) {
-                if (!gameBoard) return;
-                const cells = gameBoard.querySelectorAll('.cell');
-                cells.forEach((cell, index) => {
-                    cell.textContent = board[index] || '';
-                    cell.disabled = board[index] !== null;
-                });
-            }
-
-            function updateTurnDisplay() {
-                const infoDiv = document.querySelector('.info');
-                if (infoDiv && gameActive) {
-                    if (currentTurn === mySymbol) {
-                        infoDiv.innerHTML = '<b style="color: green;">輪到你了！</b>';
-                    } else {
-                        infoDiv.innerHTML = '<b>等待對手...</b>';
-                    }
-                }
-            }
-
-            function updateScoreDisplay() {
-                const scoreDiv = document.getElementById('pvp-score');
-                if (scoreDiv) {
-                    scoreDiv.innerHTML = `回合制：5戰3勝｜目前回合：${roundCount}`;
-                }
-            }
-
-            function updatePlayersDisplay() {
-                const playersDiv = document.getElementById('pvp-players');
-                if (playersDiv) {
-                    playersDiv.innerHTML =
-                        `<span class="left-player">左玩家：${leftWins}</span>｜平手：${leftDraws}` +
-                        '｜' +
-                        `<span class="right-player">右玩家：${rightWins}</span>`;
-                }
-            }
-        }
     </script>
 </body>
 </html>

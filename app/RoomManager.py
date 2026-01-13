@@ -53,7 +53,17 @@ class GameRoom:
         self.players: List[PlayerInfo] = [] # 玩家列表
         self.waiting = True  # 等待第二位玩家
         
-        # 第一位玩家使用 'X'
+        # 5戰3勝制度
+        self.scores = {'left': 0, 'right': 0, 'draw': 0}  # 戰績統計
+        self.round_count = 0  # 當前回合數
+        self.match_finished = False  # 比賽是否結束
+        self.current_first_player = 'left'  # 當前先手玩家 ('left' or 'right')
+        
+        # 座位和符號（初始化後隨機分配）
+        self.left_player = None
+        self.right_player = None
+        
+        # 暫時添加第一位玩家（符號待定）
         first_player = PlayerInfo(creator_sid, creator_username, Player.X.value)
         self.players.append(first_player)
     
@@ -71,10 +81,14 @@ class GameRoom:
         if len(self.players) >= 2:
             return False
         
-        # 第二位玩家使用 'O'
+        # 第二位玩家暫時使用 'O'
         second_player = PlayerInfo(sid, username, Player.O.value)
         self.players.append(second_player)
         self.waiting = False # 已有兩位玩家，停止等待
+        
+        # 隨機分配座位和符號
+        self._assign_seats_and_symbols()
+        
         self.game.start()  # 開始遊戲
         return True
     
@@ -109,17 +123,42 @@ class GameRoom:
                 return player
         return None
     
-    def make_move(self, sid: str, position: int) -> bool:
+    def _assign_seats_and_symbols(self):
+        """隨機分配玩家座位（左/右）和符號（X/O）"""
+        import random
+        
+        # 隨機決定座位
+        shuffled = random.sample(self.players, 2)
+        self.left_player = shuffled[0]
+        self.right_player = shuffled[1]
+        
+        # 隨機決定符號
+        symbols = random.sample([Player.X.value, Player.O.value], 2)
+        self.left_player.symbol = symbols[0]
+        self.right_player.symbol = symbols[1]
+        
+        # 更新玩家列表中的符號
+        for player in self.players:
+            if player.sid == self.left_player.sid:
+                player.symbol = self.left_player.symbol
+            elif player.sid == self.right_player.sid:
+                player.symbol = self.right_player.symbol
+    
+    def make_move(self, sid: str, row: int, col: int) -> bool:
         """
-        執行移動
+        執行移動（使用座標方式）
         
         Args:
             sid: 玩家 Socket ID
-            position: 棋盤位置
+            row: 行座標 (0-2)
+            col: 列座標 (0-2)
             
         Returns:
             bool: 移動是否成功
         """
+        # 座標轉換為位置 (0-8)
+        position = row * 3 + col
+        
         # 獲取玩家資訊
         player = self.get_player_by_sid(sid)
         if not player:
@@ -133,8 +172,57 @@ class GameRoom:
         return self.game.make_move(position, player.symbol) # (下棋位置, 玩家符號 X 或 O)
     
     def reset(self):
-        """重置遊戲"""
-        self.game.start()
+        """重置遊戲（新的一回合）"""
+        # 檢查是否已經結束比賽
+        if self.match_finished:
+            return
+        
+        # 先檢查當前比賽狀態是否已達結束條件（在增加回合數之前）
+        if self.scores['left'] >= 3 or self.scores['right'] >= 3:
+            self.match_finished = True
+            return
+        
+        # 檢查2比2且已經打完第5戰的情況
+        if self.round_count >= 5 and self.scores['left'] == 2 and self.scores['right'] == 2:
+            self.match_finished = True
+            return
+        
+        # 增加回合數（開始新的一回合）
+        self.round_count += 1
+        
+        # 輪替先手
+        self.current_first_player = 'right' if self.current_first_player == 'left' else 'left'
+        
+        # 設定先手符號
+        if self.current_first_player == 'left':
+            first_symbol = self.left_player.symbol
+        else:
+            first_symbol = self.right_player.symbol
+        
+        # 重置棋盤並設定先手
+        self.game.reset()
+        self.game.turn = first_symbol
+        self.game.started = True
+    
+    def check_round_end(self) -> bool:
+        """檢查回合是否結束並更新戰績"""
+        if self.game.winner:
+            if self.game.winner == 'Draw':
+                self.scores['draw'] += 1
+            elif self.game.winner == self.left_player.symbol:
+                self.scores['left'] += 1
+            elif self.game.winner == self.right_player.symbol:
+                self.scores['right'] += 1
+            
+            # 檢查是否達到比賽結束條件
+            if self.scores['left'] >= 3 or self.scores['right'] >= 3:
+                self.match_finished = True
+            elif self.round_count >= 5 and self.scores['left'] == 2 and self.scores['right'] == 2:
+                # 2:2 且已經打完第5戰
+                self.match_finished = True
+            
+            return True
+        return False
     
     def get_state(self) -> dict:
         """
@@ -150,7 +238,13 @@ class GameRoom:
             'turn': self.game.turn,
             'winner': self.game.winner,
             'waiting': self.waiting,
-            'started': self.game.started
+            'started': self.game.started,
+            'scores': self.scores,
+            'round_count': self.round_count,
+            'match_finished': self.match_finished,
+            'current_first_player': self.current_first_player,
+            'left_player': self.left_player.to_dict() if self.left_player else None,
+            'right_player': self.right_player.to_dict() if self.right_player else None
         }
 
 
@@ -300,14 +394,15 @@ class RoomManager:
         """
         return self.player_to_room.get(sid)
     
-    def make_move(self, room_id: str, sid: str, position: int) -> Optional[dict]:
+    def make_move(self, room_id: str, sid: str, row: int, col: int) -> Optional[dict]:
         """
-        在指定房間執行移動
+        在指定房間執行移動（使用座標方式）
         
         Args:
             room_id: 房間 ID
             sid: 玩家 Socket ID
-            position: 棋盤位置
+            row: 行座標 (0-2)
+            col: 列座標 (0-2)
             
         Returns:
             Optional[dict]: 更新後的房間狀態，若失敗則返回 None
@@ -316,9 +411,12 @@ class RoomManager:
         if not room:
             return None
         
-        success = room.make_move(sid, position)
+        success = room.make_move(sid, row, col)
         if not success:
             return None
+        
+        # 檢查回合是否結束
+        room.check_round_end()
         
         return room.get_state()
     
