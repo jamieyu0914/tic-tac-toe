@@ -4,6 +4,7 @@ app.py - Flask 應用主程式
 """
 
 from flask import Flask, render_template, request, redirect, url_for, session
+from environment import Config
 import random
 from flask_socketio import SocketIO
 from flask_cors import CORS
@@ -16,7 +17,7 @@ from AIPlayer import AIPlayer
 # 創建 Flask 應用實例
 app = Flask(__name__)
 CORS(app)
-app.secret_key = 'SINBON'
+app.secret_key = Config.SECRET_KEY
 
 # 創建 Socket.IO 實例
 # - async_mode='threading': 使用多線程異步模式
@@ -196,7 +197,5 @@ def logout():
 
 if __name__ == '__main__':
     # 啟動應用
-    # host='0.0.0.0' 允許外部訪問
-    # debug=True 僅用於開發環境
-    socketio.run(app, host='0.0.0.0', port=5000, debug=True)
+    socketio.run(app, host=Config.HOST, port=Config.PORT, debug=Config.DEBUG)
 

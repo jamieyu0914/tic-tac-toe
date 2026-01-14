@@ -32,11 +32,12 @@ button {
 }
 
 .container {
-  display: flex;
-  justify-content: center;
   text-align: center;
-  align-items: flex-start;
-  margin-top: 30px;
+  max-width: 100%;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .game-area {
@@ -47,12 +48,12 @@ button {
 /* 戰績顯示板 - 參考UI設計 */
 .score-board {
   display: none;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: rgb(51, 51, 51);
   border-radius: 12px;
   padding: 20px;
-  margin: 20px auto;
+  margin: -15px 0 40px 0;
   max-width: 500px;
-  box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 .score-board.active {
@@ -193,8 +194,8 @@ button {
   height: 100px;
   font-size: 3em;
   cursor: pointer;
-  background: #f0f0f0;
-  border: 3px solid #333;
+  background: #dddddd;
+  border: 3px solid #cccccc;
   border-radius: 8px;
   transition: all 0.2s;
 }
@@ -240,13 +241,16 @@ button {
 }
 
 .chatroom {
+  box-shadow: rgb(238, 238, 238) 0px 2px 8px;
   flex: 0 0 320px;
-  margin-left: 40px;
-  background: #fafafa;
-  border: 1px solid #ccc;
+  margin: 25px 25px 25px 25px;
+  background: rgb(250, 250, 250);
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgb(204, 204, 204);
+  border-image: initial;
   border-radius: 8px;
   padding: 16px;
-  box-shadow: 0 2px 8px #eee;
 }
 
 .chat-messages {
