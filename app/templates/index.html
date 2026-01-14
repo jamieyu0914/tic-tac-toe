@@ -10,11 +10,16 @@
     {% include 'navbar.html' %}
     <div class="container">
         <div class="game-area">
-            <!-- PvP 配對區 -->
+            <!-- PvP 配對區（等待動畫） -->
             <div class="pvp-info">
-                <div class="pvp-search">
-                    <p><b>請按「開始配對」尋找對手。</b></p>
-                    <button id="start-pvp-btn" type="button" onclick="startPvp()">開始配對</button>
+                <div class="waiting-animation">
+                    <div class="waiting-spinner">
+                        <div class="spinner-dot"></div>
+                        <div class="spinner-dot"></div>
+                        <div class="spinner-dot"></div>
+                    </div>
+                    <div class="waiting-text">等待對手加入</div>
+                    <div class="waiting-subtext">配對中，請稍候</div>
                 </div>
             </div>
             

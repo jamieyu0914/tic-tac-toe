@@ -177,13 +177,13 @@ class GameRoom:
         if self.match_finished:
             return
         
-        # 先檢查當前比賽狀態是否已達結束條件（在增加回合數之前）
+        # 先檢查當前比賽狀態是否已達結束條件
         if self.scores['left'] >= 3 or self.scores['right'] >= 3:
             self.match_finished = True
             return
         
-        # 檢查2比2且已經打完第5戰的情況
-        if self.round_count >= 5 and self.scores['left'] == 2 and self.scores['right'] == 2:
+        # 檢查是否已經打完5戰（round_count 從0開始，打完第5戰時 round_count == 4）
+        if self.round_count >= 4:
             self.match_finished = True
             return
         
@@ -216,9 +216,10 @@ class GameRoom:
             
             # 檢查是否達到比賽結束條件
             if self.scores['left'] >= 3 or self.scores['right'] >= 3:
+                # 有人達到3勝
                 self.match_finished = True
-            elif self.round_count >= 5 and self.scores['left'] == 2 and self.scores['right'] == 2:
-                # 2:2 且已經打完第5戰
+            elif self.round_count >= 4:
+                # 已經打完第5回合（round_count 從0開始，第5回合時 round_count = 4）
                 self.match_finished = True
             
             return True
@@ -322,13 +323,16 @@ class RoomManager:
         room = self.rooms.get(room_id)
         if room:
             room.remove_player(sid)
-            # 如果房間為空，刪除房間
-            if len(room.players) == 0:
+            # 如果房間為空或只剩一人，刪除房間
+            if len(room.players) <= 1:
+                # 如果還有一人，也要移除他的映射
+                for player in room.players:
+                    if player.sid in self.player_to_room:
+                        del self.player_to_room[player.sid]
                 del self.rooms[room_id]
-            # 如果房間只剩一人且遊戲已開始，也可以選擇刪除房間
-            # 或將其標記為等待狀態（這裡選擇保留房間讓玩家等待）
         
-        del self.player_to_room[sid]
+        if sid in self.player_to_room:
+            del self.player_to_room[sid]
         return room_id
     
     def get_room_count(self) -> int:
@@ -357,6 +361,16 @@ class RoomManager:
             int: 進行中的房間數量
         """
         return sum(1 for room in self.rooms.values() if not room.waiting)
+    
+    def get_active_game_count(self) -> int:
+        """
+        獲取正在進行的遊戲數量（必須有兩個玩家且遊戲已開始）
+        
+        Returns:
+            int: 正在進行的遊戲數量
+        """
+        return sum(1 for room in self.rooms.values() 
+                  if len(room.players) == 2 and room.game.started and not room.waiting)
     
     def get_available_room(self) -> Optional[str]:
         """

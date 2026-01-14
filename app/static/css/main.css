@@ -180,6 +180,77 @@ button {
   text-align: center;
 }
 
+/* 等待動畫 */
+.waiting-animation {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  min-height: 200px;
+}
+
+.waiting-spinner {
+  width: 80px;
+  height: 30px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.spinner-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  animation: dotBounce 1.4s infinite ease-in-out both;
+}
+
+.spinner-dot:nth-child(1) {
+  background-color: #333;
+  animation-delay: -0.32s;
+}
+
+.spinner-dot:nth-child(2) {
+  background-color: #999;
+  animation-delay: -0.16s;
+}
+
+.spinner-dot:nth-child(3) {
+  background-color: #ddd;
+  animation-delay: 0s;
+}
+
+@keyframes dotBounce {
+  0%, 80%, 100% {
+    transform: scale(0.8);
+    opacity: 0.5;
+  }
+  40% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+}
+
+.waiting-text {
+  font-size: 20px;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 10px;
+  animation: fadeInOut 2s ease-in-out infinite;
+}
+
+.waiting-subtext {
+  font-size: 14px;
+  color: #666;
+}
+
+@keyframes fadeInOut {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
 .board {
   display: grid;
   grid-template-columns: repeat(3, 100px);
@@ -203,7 +274,6 @@ button {
 .cell:hover:not(:disabled) {
   background: #e0e0e0;
   transform: scale(1.05);
-}
 }
 
 .cell:disabled {

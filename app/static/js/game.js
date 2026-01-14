@@ -5,7 +5,7 @@
 
 // 全局變量
 const socket = io();
-let chatMessages, chatInput, chatSend, gameBoard, pvpStatus, startPvpBtn, resetBtn;
+let chatMessages, chatInput, chatSend, gameBoard, resetBtn;
 let mode;
 
 // 遊戲狀態
@@ -30,7 +30,6 @@ function initGame(gameMode) {
     chatInput = document.getElementById('chat-input');
     chatSend = document.getElementById('chat-send');
     gameBoard = document.getElementById('game-board');
-    startPvpBtn = document.getElementById('start-pvp-btn');
     resetBtn = document.getElementById('reset-btn');
     mode = gameMode;
 
@@ -49,6 +48,8 @@ function initGame(gameMode) {
     // 設置遊戲事件監聽
     if (mode === 'pvp') {
         setupPvPEvents();
+        // 自動開始配對
+        socket.emit('join_pvp');
     }
 }
 
@@ -73,23 +74,51 @@ function setupChatEvents() {
  * 設置 PvP 模式事件監聽
  */
 function setupPvPEvents() {
+    // 遊戲進行中事件
+    socket.on('game_in_progress', function(data) {
+        const waitingAnimation = document.querySelector('.waiting-animation');
+        if (waitingAnimation) {
+            waitingAnimation.style.display = 'none';
+        }
+        
+        appendMessage('[系統提示] ' + data.message);
+        
+        // 顯示提示訊息
+        const pvpInfo = document.querySelector('.pvp-info');
+        if (pvpInfo) {
+            pvpInfo.innerHTML = `
+                <div style="padding: 40px 20px; text-align: center;">
+                    <div style="font-size: 48px; margin-bottom: 20px;">🎮</div>
+                    <div style="font-size: 20px; font-weight: bold; color: #FF6B6B; margin-bottom: 10px;">
+                        遊戲進行中
+                    </div>
+                    <div style="font-size: 14px; color: #666; margin-bottom: 20px;">
+                        目前已有玩家正在對戰，請稍後再試
+                    </div>
+                    <button onclick="location.reload()" style="padding: 10px 20px; font-size: 14px; background: #333; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                        重新嘗試
+                    </button>
+                </div>
+            `;
+        }
+    });
+    
     // 房間已滿事件
     socket.on('room_full', function(data) {
         updateGameStatus(data.message, 'error');
-        startPvpBtn.disabled = false;
-        startPvpBtn.textContent = '開始配對';
         appendMessage('[系統提示] ' + data.message);
     });
 
-    // 等待對手事件
+    // 等待對手事件（不需要顯示文字，已在HTML中顯示）
     socket.on('waiting_for_opponent', function(data) {
-        updateGameStatus('等待對手加入...', '');
+        // 等待動畫已經在顯示了，不需要額外的狀態文字
     });
 
     // 遊戲開始事件
     socket.on('game_start', function(data) {
-        // 隱藏配對區
-        document.querySelector('.pvp-search').style.display = 'none';
+        // 隱藏配對區和等待動畫
+        const pvpInfo = document.querySelector('.pvp-info');
+        if (pvpInfo) pvpInfo.style.display = 'none';
         
         leftPlayer = data.left_player;
         rightPlayer = data.right_player;
@@ -139,24 +168,6 @@ function setupPvPEvents() {
             drawWinningLines(data.winning_lines);
         }
         
-        // 更新遊戲狀態（只顯示一次）
-        if (data.winner === 'Draw') {
-            updateGameStatus('平手！', 'draw');
-        } else {
-            // 判斷誰贏了
-            let iWon = false;
-            if ((mySide === 'left' && data.winner === leftPlayer.symbol) ||
-                (mySide === 'right' && data.winner === rightPlayer.symbol)) {
-                iWon = true;
-            }
-            
-            if (iWon) {
-                updateGameStatus('你贏了！🎉', 'win');
-            } else {
-                updateGameStatus('你輸了！', 'lose');
-            }
-        }
-        
         // 禁用所有格子
         if (gameBoard) {
             const cells = gameBoard.querySelectorAll('.cell');
@@ -165,36 +176,62 @@ function setupPvPEvents() {
         
         updateScoreDisplay();
         
-        // 更新按鈕文字和顯示結果
-        if (resetBtn) {
-            if (matchFinished) {
+        // 如果比賽已結束，直接顯示最終結果
+        if (matchFinished) {
+            let finalMessage = '';
+            let winnerName = '';
+            if (scores.left >= 3) {
+                winnerName = leftPlayer.username;
+                finalMessage = `🎉 ${leftPlayer.username} (${leftPlayer.symbol}) 獲勝！比分 ${scores.left}:${scores.right}`;
+            } else if (scores.right >= 3) {
+                winnerName = rightPlayer.username;
+                finalMessage = `🎉 ${rightPlayer.username} (${rightPlayer.symbol}) 獲勝！比分 ${scores.right}:${scores.left}`;
+            } else if (scores.left > scores.right) {
+                // 5回合結束，左邊分數較高
+                winnerName = leftPlayer.username;
+                finalMessage = `🎉 ${leftPlayer.username} (${leftPlayer.symbol}) 獲勝！比分 ${scores.left}:${scores.right}`;
+            } else if (scores.right > scores.left) {
+                // 5回合結束，右邊分數較高
+                winnerName = rightPlayer.username;
+                finalMessage = `🎉 ${rightPlayer.username} (${rightPlayer.symbol}) 獲勝！比分 ${scores.right}:${scores.left}`;
+            } else {
+                // 分數相同才是平手
+                finalMessage = `🤝 比賽結束！雙方戰成 ${scores.left}:${scores.right} 平手！`;
+            }
+            
+            updateGameStatus(finalMessage, 'win');
+            
+            // 在聊天室顯示系統提示
+            if (winnerName) {
+                appendMessage(`[系統提示] 🏆 ${winnerName} 主宰了比賽！`);
+            } else {
+                appendMessage(`[系統提示] ${finalMessage}`);
+            }
+            
+            if (resetBtn) {
                 resetBtn.textContent = '下一輪';
                 resetBtn.disabled = false;
-                
-                // 顯示最終結果
-                let finalMessage = '';
-                let winnerName = '';
-                if (scores.left >= 3) {
-                    winnerName = leftPlayer.username;
-                    finalMessage = `🎉 ${leftPlayer.username} (${leftPlayer.symbol}) 獲勝！比分 ${scores.left}:${scores.right}`;
-                } else if (scores.right >= 3) {
-                    winnerName = rightPlayer.username;
-                    finalMessage = `🎉 ${rightPlayer.username} (${rightPlayer.symbol}) 獲勝！比分 ${scores.right}:${scores.left}`;
-                } else if (scores.left === 2 && scores.right === 2) {
-                    finalMessage = '🤝 平手！雙方戰成 2:2';
-                }
-                
-                if (finalMessage) {
-                    updateGameStatus(finalMessage, 'win');
-                }
-                
-                // 在聊天室顯示系統提示
-                if (winnerName) {
-                    appendMessage(`[系統提示] 🏆 ${winnerName} 主宰了比賽！`);
-                } else if (scores.left === 2 && scores.right === 2) {
-                    appendMessage('[系統提示] 比賽結束！雙方戰成平手！');
-                }
+            }
+        } else {
+            // 比賽未結束，顯示本回合結果
+            if (data.winner === 'Draw') {
+                updateGameStatus('平手！', 'draw');
             } else {
+                // 判斷誰贏了
+                let iWon = false;
+                if ((mySide === 'left' && data.winner === leftPlayer.symbol) ||
+                    (mySide === 'right' && data.winner === rightPlayer.symbol)) {
+                    iWon = true;
+                }
+                
+                if (iWon) {
+                    updateGameStatus('你贏了！🎉', 'win');
+                } else {
+                    updateGameStatus('你輸了！', 'lose');
+                }
+            }
+            
+            if (resetBtn) {
                 resetBtn.textContent = '下一回合';
                 resetBtn.disabled = false;
             }
@@ -246,6 +283,11 @@ function setupPvPEvents() {
         clearWinningLines();
         updateScoreDisplay();
         updateTurnDisplay();
+        
+        // 重新啟用按鈕（下一回合開始後禁用）
+        if (resetBtn) {
+            resetBtn.disabled = true;
+        }
     });
 
     // 新比賽開始事件
@@ -253,6 +295,16 @@ function setupPvPEvents() {
         // 更新玩家資訊（可能重新分配了座位和符號）
         leftPlayer = data.left_player;
         rightPlayer = data.right_player;
+        
+        // 更新我的符號和位置（因為可能重新分配了）
+        const mySid = socket.id;
+        if (leftPlayer.sid === mySid) {
+            mySide = 'left';
+            mySymbol = leftPlayer.symbol;
+        } else if (rightPlayer.sid === mySid) {
+            mySide = 'right';
+            mySymbol = rightPlayer.symbol;
+        }
         
         // 重置所有狀態
         currentTurn = data.turn;
@@ -267,7 +319,6 @@ function setupPvPEvents() {
         clearWinningLines();
         updateScoreDisplay();
         updateTurnDisplay();
-        updateGameStatus('新的一輪開始！', 'turn');
         
         // 更新按鈕
         if (resetBtn) {
@@ -278,37 +329,58 @@ function setupPvPEvents() {
 
     // 對手離開事件
     socket.on('opponent_left', function() {
-        updateGameStatus('對手已離開', 'error');
         gameActive = false;
         matchFinished = true;
         
-        // 讓配對按鈕恢復可用
-        if (startPvpBtn) {
-            startPvpBtn.disabled = false;
-            startPvpBtn.textContent = '開始配對';
-        }
-        
-        // 禁用棋盤
-        if (gameBoard) {
-            const cells = gameBoard.querySelectorAll('.cell');
-            cells.forEach(cell => {
-                cell.disabled = true;
-            });
-        }
-        
-        // 更新重置按鈕
-        if (resetBtn) {
-            resetBtn.textContent = '對手離開 - 重新配對';
-        }
-        
-        appendMessage('[系統提示] 您的對手已離開，遊戲結束。');
-        
-        // 清空遊戲狀態
+        // 隱藏遊戲狀態提示（清除「你輸了！」等訊息）
         const gameStatus = document.getElementById('game-status');
         if (gameStatus) {
-            gameStatus.className = 'game-status';
+            gameStatus.classList.remove('active');
             gameStatus.textContent = '';
         }
+        
+        // 隱藏戰績板和棋盤
+        const scoreBoard = document.getElementById('score-board');
+        if (scoreBoard) scoreBoard.classList.remove('active');
+        if (gameBoard) gameBoard.classList.remove('active');
+        
+        // 隱藏重置按鈕
+        if (resetBtn) {
+            resetBtn.classList.remove('visible');
+        }
+        
+        // 重新顯示等待動畫
+        const pvpInfo = document.querySelector('.pvp-info');
+        if (pvpInfo) {
+            pvpInfo.style.display = 'block';
+            pvpInfo.innerHTML = `
+                <div class="waiting-animation">
+                    <div class="waiting-spinner">
+                        <div class="spinner-dot"></div>
+                        <div class="spinner-dot"></div>
+                        <div class="spinner-dot"></div>
+                    </div>
+                    <div class="waiting-text">等待對手加入</div>
+                    <div class="waiting-subtext">正在配對中...</div>
+                </div>
+            `;
+        }
+        
+        appendMessage('[系統提示] 您的對手已離開，正在尋找新對手...');
+        
+        // 重置遊戲狀態
+        mySymbol = null;
+        mySide = null;
+        leftPlayer = null;
+        rightPlayer = null;
+        scores = { left: 0, right: 0, draw: 0 };
+        roundCount = 0;
+        board = [null, null, null, null, null, null, null, null, null];
+        
+        // 自動重新配對
+        setTimeout(function() {
+            socket.emit('join_pvp');
+        }, 1000);
     });
 
     // 處理棋盤點擊事件（使用座標方式）
@@ -350,14 +422,12 @@ function sendMessage() {
 /**
  * 遊戲控制功能
  */
-function startPvp() {
-    socket.emit('join_pvp');
-    startPvpBtn.disabled = true;
-    startPvpBtn.textContent = '配對中...';
-    if (pvpStatus) pvpStatus.textContent = '正在尋找對手...';
-}
-
 function resetGame() {
+    // 禁用按鈕，避免重複點擊
+    if (resetBtn) {
+        resetBtn.disabled = true;
+    }
+    
     if (matchFinished) {
         // 比賽結束，開始新的一輪
         socket.emit('start_new_match');

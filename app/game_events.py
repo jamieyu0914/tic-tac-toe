@@ -25,15 +25,25 @@ def register_game_events(socketio):
         """
         處理玩家加入 PVP 配對
         流程：
-        1. 尋找等待中的房間
-        2. 若有空房間，加入並開始遊戲
-        3. 若無空房間，創建新房間並等待對手
+        1. 檢查是否有正在進行的遊戲
+        2. 尋找等待中的房間
+        3. 若有空房間，加入並開始遊戲
+        4. 若無空房間且沒有進行中的遊戲，創建新房間並等待對手
         """
         username = session.get('user', '匿名')
         sid = request.sid
         
+        # 檢查是否有正在進行的遊戲（沒有等待中的房間）
+        available_room = room_manager.get_available_room()
+        active_game_count = room_manager.get_active_game_count()
+        
+        # 如果沒有等待中的房間，且已經有正在進行的遊戲，拒絕加入
+        if not available_room and active_game_count > 0:
+            emit('game_in_progress', {'message': '目前已有遊戲進行中，請稍後再試'})
+            return
+        
         # 嘗試尋找可用房間
-        room_id = room_manager.get_available_room()
+        room_id = available_room
         
         if room_id:
             # 檢查房間是否已滿
@@ -80,7 +90,7 @@ def register_game_events(socketio):
             else:
                 emit('room_full', {'message': '房間已滿，請稍後再試'})
         else:
-            # 創建新房間
+            # 創建新房間（只有在沒有正在進行的遊戲時）
             room_id = room_manager.create_room(sid, username)
             join_room(room_id)
             emit('waiting_for_opponent', {'room_id': room_id})

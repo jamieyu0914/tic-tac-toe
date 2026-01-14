@@ -12,7 +12,6 @@ from flask_cors import CORS
 from chat_events import register_chat_events
 from game_events import register_game_events
 from Game import Game
-from AIPlayer import AIPlayer
 
 # 創建 Flask 應用實例
 app = Flask(__name__)

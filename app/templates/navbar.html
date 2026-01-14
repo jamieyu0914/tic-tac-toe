@@ -1,6 +1,10 @@
 <nav class="navbar">
   <div class="navbar-container">
-    <a href="/" class="navbar-title">Tic-Tac-Toe</a>
+    {% if request.endpoint == 'login' %}
+    <a href="/login" class="navbar-title">Tic-Tac-Toe</a>
+    {% else %}
+    <span class="navbar-title">Tic-Tac-Toe</span>
+    {% endif %}
     <div class="navbar-links">
       {% if request.endpoint == 'login' %}
       <a href="/login">登入</a>
