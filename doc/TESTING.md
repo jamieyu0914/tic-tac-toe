@@ -7,6 +7,7 @@
 ### Game.py 功能測試
 
 測試 Game.py 的所有核心功能，包括：
+
 - 初始化和重置
 - 遊戲模式設置
 - 移動驗證
@@ -15,12 +16,14 @@
 - 邊界條件
 
 **執行測試**:
+
 ```bash
-cd app/tests
+cd tests
 python test_game.py
 ```
 
 **測試結果範例**:
+
 ```
 Ran 31 tests in 0.005s
 OK
@@ -42,12 +45,14 @@ OK
 驗證 WebApp.py 是否正確實現類別化結構。
 
 **執行測試**:
+
 ```bash
 cd app
 python test_structure.py
 ```
 
 **測試內容**:
+
 - 檢查 WebApp 類別是否存在
 - 驗證所有必要方法是否實現
 - 確認模組級別函數存在
@@ -56,24 +61,25 @@ python test_structure.py
 
 ### Game.py 測試覆蓋
 
-| 功能模塊 | 測試數量 | 狀態 |
-|---------|---------|------|
-| 初始化測試 | 2 | ✓ |
-| 模式設置測試 | 1 | ✓ |
-| 遊戲開始測試 | 1 | ✓ |
-| 移動測試 | 6 | ✓ |
-| 勝負判定測試 | 10 | ✓ |
-| 輔助方法測試 | 2 | ✓ |
-| 狀態管理測試 | 3 | ✓ |
-| 邊界條件測試 | 6 | ✓ |
-| **總計** | **31** | **✓** |
+| 功能模塊     | 測試數量 | 狀態  |
+| ------------ | -------- | ----- |
+| 初始化測試   | 2        | ✓     |
+| 模式設置測試 | 1        | ✓     |
+| 遊戲開始測試 | 1        | ✓     |
+| 移動測試     | 6        | ✓     |
+| 勝負判定測試 | 10       | ✓     |
+| 輔助方法測試 | 2        | ✓     |
+| 狀態管理測試 | 3        | ✓     |
+| 邊界條件測試 | 6        | ✓     |
+| **總計**     | **31**   | **✓** |
 
 ### 測試的勝利條件
 
 測試涵蓋所有可能的獲勝方式：
-- ✓ 橫向獲勝（3種：第一、二、三行）
-- ✓ 縱向獲勝（3種：第一、二、三列）
-- ✓ 對角線獲勝（2種：主對角線、副對角線）
+
+- ✓ 橫向獲勝（3 種：第一、二、三行）
+- ✓ 縱向獲勝（3 種：第一、二、三列）
+- ✓ 對角線獲勝（2 種：主對角線、副對角線）
 - ✓ 平局情況
 - ✓ X 和 O 都能獲勝
 
@@ -82,18 +88,21 @@ python test_structure.py
 ### 完整遊戲流程測試
 
 1. **啟動應用**:
+
    ```bash
    cd app
    python WebApp.py
    ```
 
 2. **測試登入**:
+
    - 訪問 http://localhost:5000/login
    - 輸入用戶名
    - 選擇圖示
    - 驗證登入成功
 
 3. **測試 PVP 遊戲**:
+
    - 開啟兩個瀏覽器視窗
    - 分別登入不同用戶
    - 驗證自動配對
@@ -102,6 +111,7 @@ python test_structure.py
    - 確認先手輪替機制
 
 4. **測試聊天室**:
+
    - 在聊天室發送訊息
    - 驗證雙方都能看到訊息
    - 確認時間戳記正確
@@ -116,6 +126,7 @@ python test_structure.py
 如要設置 CI/CD，可使用以下配置：
 
 **GitHub Actions 範例** (`.github/workflows/test.yml`):
+
 ```yaml
 name: Tests
 
@@ -124,28 +135,28 @@ on: [push, pull_request]
 jobs:
   test:
     runs-on: ubuntu-latest
-    
+
     steps:
-    - uses: actions/checkout@v2
-    
-    - name: Set up Python
-      uses: actions/setup-python@v2
-      with:
-        python-version: '3.9'
-    
-    - name: Install dependencies
-      run: |
-        pip install -r requirements.txt
-    
-    - name: Run Game tests
-      run: |
-        cd app/tests
-        python test_game.py
-    
-    - name: Verify structure
-      run: |
-        cd app
-        python test_structure.py
+      - uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: "3.9"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Run Game tests
+        run: |
+          cd app/tests
+          python test_game.py
+
+      - name: Verify structure
+        run: |
+          cd app
+          python test_structure.py
 ```
 
 ## 測試最佳實踐
@@ -158,6 +169,7 @@ jobs:
 ## 已知限制
 
 目前的測試涵蓋 Game.py 的核心邏輯，但以下部分尚未完全測試：
+
 - RoomManager.py 的房間管理邏輯
 - Socket.IO 事件處理
 - Session 管理

@@ -6,7 +6,7 @@ game_events.py - 遊戲事件處理
 from flask import session, request
 from flask_socketio import emit, join_room, leave_room
 from RoomManager import RoomManager
-import time
+from datetime import datetime
 
 # 創建房間管理器實例 (singleton pattern)
 room_manager = RoomManager()
@@ -63,10 +63,19 @@ def register_game_events(socketio):
                 # 取得第一個玩家的名稱
                 first_player_name = room_state['players'][0]['username']
                 
-                # 發送系統訊息到聊天室（兩則訊息都會被兩位玩家看到）
-                emit('chat message', f'[系統提示] 強勁的棋手 {first_player_name} 已等候多時!', room=room_id)
-                time.sleep(0.5)  # 確保訊息順序
-                emit('chat message', f'[系統提示] 強勁的棋手 {username} 已抵達戰場!', room=room_id)
+                # 發送系統訊息到聊天室
+                timestamp = datetime.now().strftime('%H:%M:%S')
+                emit('chat message', {
+                    'username': '系統',
+                    'message': f'強勁的棋手 {first_player_name} 已等候多時!',
+                    'time': timestamp
+                }, room=room_id)
+                timestamp = datetime.now().strftime('%H:%M:%S')
+                emit('chat message', {
+                    'username': '系統',
+                    'message': f'強勁的棋手 {username} 已抵達戰場!',
+                    'time': timestamp
+                }, room=room_id)
                 
                 # 使用隨機分配的座位和符號
                 left_player = room_state['left_player']
@@ -94,9 +103,60 @@ def register_game_events(socketio):
             # 創建新房間（只有在沒有正在進行的遊戲時）
             room_id = room_manager.create_room(sid, username)
             join_room(room_id)
-            emit('waiting_for_opponent', {'room_id': room_id})
-            emit('chat message', f'[系統提示] 請等候其他玩家加入！', room=room_id)
-    
+            # 回傳等待狀態
+            emit('waiting_for_opponent', {'room_id': room_id, 'status': 'waiting'})
+            timestamp = datetime.now().strftime('%H:%M:%S')
+            emit('chat message', {
+                'username': '系統',
+                'message': '請等候其他玩家加入！',
+                'time': timestamp
+            }, room=room_id)
+
+    @socketio.on('action')
+    def handle_action(payload):
+        """
+            通用 action 事件分發器，支援前端以 JSON 形式發送 {"action": "..."}
+
+            目前會將下列 action 映射到現有的處理器：
+            - join_pvp
+            - make_move
+            - reset_game
+            - start_new_match
+
+            之後可再擴充其他 action
+        """
+        if not payload:
+            return
+
+        # payload
+        action_name = None
+        if isinstance(payload, dict):
+            action_name = payload.get('action')
+        elif isinstance(payload, str):
+            action_name = payload
+
+        if action_name == 'join_pvp':
+            # 直接呼叫既有的 handler
+            return handle_join_pvp()
+
+        if action_name == 'make_move':
+            # 只接受統一格式：{ action: 'make_move', data: { row: <r>, col: <c> } }
+            if isinstance(payload, dict):
+                data = payload.get('data')
+                # 若 data 為 None 或不包含 row/col，則不處理
+                if data and isinstance(data, dict) and data.get('row') is not None and data.get('col') is not None:
+                    return handle_make_move(data)
+            # 否則忽略
+            return
+
+        if action_name == 'reset_game':
+            # 透過 action 路徑觸發重置回合
+            return handle_reset_game()
+
+        if action_name == 'start_new_match':
+            # 透過 action 路徑開始新比賽
+            return handle_start_new_match()
+
     @socketio.on('make_move')
     def handle_make_move(data):
         """
@@ -139,7 +199,7 @@ def register_game_events(socketio):
                     'match_finished': room_state['match_finished'],
                     'winning_lines': winning_lines
                 }, room=room_id)
-    
+
     @socketio.on('reset_game')
     def handle_reset_game():
         """
@@ -162,7 +222,7 @@ def register_game_events(socketio):
                     'match_finished': room_state['match_finished'],
                     'current_first_player': room_state['current_first_player']
                 }, room=room_id)
-    
+
     @socketio.on('start_new_match')
     def handle_start_new_match():
         """
@@ -200,7 +260,7 @@ def register_game_events(socketio):
                     'right_player': room_state['right_player'],
                     'current_first_player': room_state['current_first_player']
                 }, room=room_id)
-    
+
     @socketio.on('disconnect')
     def handle_disconnect():
         """
@@ -213,6 +273,7 @@ def register_game_events(socketio):
         if room_id:
             # 通知對手玩家已離開
             emit('opponent_left', room=room_id)
+
 
 def get_winning_lines(board):
     """

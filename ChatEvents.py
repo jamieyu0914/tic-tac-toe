@@ -24,7 +24,18 @@ def register_chat_events(socketio):
         Args:
             msg: 聊天消息內容
         """
-        user = session.get('user', '隱藏玩家') # 如果沒有用戶名，則顯示為隱藏玩家
-        # 加上時間
-        timestamp = datetime.now().strftime('%H:%M:%S')
-        emit('chat message', f"[{timestamp}] {user}: {msg}", broadcast=True)
+        if isinstance(msg, dict):
+            message = msg.get('message', '')
+            username = session.get('user') or msg.get('username') or '隱藏玩家'
+            time_str = msg.get('time') or datetime.now().strftime('%H:%M:%S')
+        else:
+            message = str(msg)
+            username = session.get('user', '隱藏玩家')
+            time_str = datetime.now().strftime('%H:%M:%S')
+
+        # 廣播結構化的 JSON 給所有人
+        emit('chat message', {
+            'username': username,
+            'message': message,
+            'time': time_str
+        }, broadcast=True)
