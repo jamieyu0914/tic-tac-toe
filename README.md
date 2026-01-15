@@ -24,12 +24,11 @@
 1. 使用 `pip install -r requirements.txt` 一次安裝所有依賴
 
 ## 啟動應用程式
-1. 在終端機啟用 venv 後，移動至 `cd app/`
-2. 執行：`python app.py`
-3. 或用 Flask 指令：`flask --app app run` 或 `flask run`
+1. 在終端機啟用 venv 後，執行：`python WebApp.py`
+2. 或用 Flask 指令：`flask --app WebApp run` 或 `flask run` <!-- 暫時註解 -->
 
 ## 查看路由
-1. 執行：`flask --app app routes`
+1. 執行：`flask --app WebApp routes`
 
 ## 檢查程式是否運行中
 1. 執行：`sudo lsof -i :5000`
@@ -67,7 +66,7 @@
 1. ✓ 移除未使用的功能和代碼（AI 相關枚舉、空函數、mode 系統等）
 2. ✓ 新增前後端通訊協定文檔 (PROTOCOL.md)，定義 15 個 Socket.IO 事件
 3. ✓ 新增 Game.py 單元測試 (app/tests/test_game.py)，30 個測試全部通過
-4. ✓ 將 app.py 重構為類別化結構（WebApp 類別）
+4. ✓ 將 WebApp.py 重構為類別化結構（WebApp 類別）
 5. ✓ 優化資料傳輸（只傳送單格更新，非整個棋盤）
 6. ✓ 完善隨機分配機制（座位和符號完全隨機）
-7. ✓ 加入更自然的程式碼註解（包含時間和作者資訊）
+7. ✓ 統一命名風格為 PascalCase（WebApp.py, ChatEvents.py, GameEvents.py, Environment.py）
