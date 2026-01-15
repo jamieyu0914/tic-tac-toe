@@ -3,10 +3,9 @@
  * 處理 Socket.IO 通訊、遊戲狀態和 UI 更新
  */
 
-// 全局變量
+// 全域變數
 const socket = io();
 let chatMessages, chatInput, chatSend, gameBoard, resetBtn;
-let mode;
 
 // 遊戲狀態
 let mySymbol = null;
@@ -22,18 +21,17 @@ let board = [null, null, null, null, null, null, null, null, null];
 
 /**
  * 初始化遊戲
- * 在 DOM 載入後調用
+ * 頁面完成後自動載入
  */
-function initGame(gameMode) {
-    // 獲取 DOM 元素
+function initGame() {
+    // 抓取所有需要的 DOM 元素
     chatMessages = document.getElementById('chat-messages');
     chatInput = document.getElementById('chat-input');
     chatSend = document.getElementById('chat-send');
     gameBoard = document.getElementById('game-board');
     resetBtn = document.getElementById('reset-btn');
-    mode = gameMode;
 
-    // 初始化棋盤為禁用狀態
+    // 一開始先把棋盤鎖住，等配對成功再解鎖
     if (gameBoard) {
         const cells = gameBoard.querySelectorAll('.cell');
         cells.forEach(cell => {
@@ -42,15 +40,13 @@ function initGame(gameMode) {
         });
     }
 
-    // 設置聊天室事件監聽
+    // 設置聊天室相關事件監聽
     setupChatEvents();
     
-    // 設置遊戲事件監聽
-    if (mode === 'pvp') {
-        setupPvPEvents();
-        // 自動開始配對
-        socket.emit('join_pvp');
-    }
+    // 設置遊戲相關 socket 事件監聽
+    setupPvPEvents();
+    // 進來就直接開始配對
+    socket.emit('join_pvp');
 }
 
 /**
@@ -523,10 +519,6 @@ function updateScoreDisplay() {
     if (drawScoreEl) {
         drawScoreEl.textContent = scores.draw;
     }
-}
-
-function updatePlayersDisplay() {
-    // 此函數已被 updateScoreDisplay 取代，保留空函數以兼容
 }
 
 /**

@@ -9,11 +9,11 @@ from Game import Game, Player
 
 
 class PlayerInfo:
-    """玩家資訊類別"""
+    """玩家資訊類別 - 儲存單一玩家的連線資料"""
     
     def __init__(self, sid: str, username: str, symbol: str):
         """
-        初始化玩家資訊
+        建立玩家實例，記錄 socket id 和符號
         
         Args:
             sid: Socket ID
@@ -25,7 +25,7 @@ class PlayerInfo:
         self.symbol = symbol
     
     def to_dict(self) -> dict:
-        """轉換為字典格式"""
+        """轉成 dict 方便傳給前端"""
         return {
             'sid': self.sid,
             'username': self.username,
@@ -59,12 +59,12 @@ class GameRoom:
         self.match_finished = False  # 比賽是否結束
         self.current_first_player = 'left'  # 當前先手玩家 ('left' or 'right')
         
-        # 座位和符號（初始化後隨機分配）
+        # 座位和符號（等第二位玩家加入後隨機分配）
         self.left_player = None
         self.right_player = None
         
-        # 暫時添加第一位玩家（符號待定）
-        first_player = PlayerInfo(creator_sid, creator_username, Player.X.value)
+        # 先用臨時符號創建第一位玩家
+        first_player = PlayerInfo(creator_sid, creator_username, 'TEMP')
         self.players.append(first_player)
     
     def add_player(self, sid: str, username: str) -> bool:
@@ -81,12 +81,12 @@ class GameRoom:
         if len(self.players) >= 2:
             return False
         
-        # 第二位玩家暫時使用 'O'
-        second_player = PlayerInfo(sid, username, Player.O.value)
+        # 第二位玩家先用臨時符號
+        second_player = PlayerInfo(sid, username, 'TEMP')
         self.players.append(second_player)
         self.waiting = False # 已有兩位玩家，停止等待
         
-        # 隨機分配座位和符號
+        # 現在兩位玩家都到齊了，隨機分配座位和符號
         self._assign_seats_and_symbols()
         
         self.game.start()  # 開始遊戲
@@ -127,17 +127,17 @@ class GameRoom:
         """隨機分配玩家座位（左/右）和符號（X/O）"""
         import random
         
-        # 隨機決定座位
+        # 第一步：隨機決定誰坐左邊、誰坐右邊
         shuffled = random.sample(self.players, 2)
         self.left_player = shuffled[0]
         self.right_player = shuffled[1]
         
-        # 隨機決定符號
+        # 第二步：隨機決定符號分配給左右玩家
         symbols = random.sample([Player.X.value, Player.O.value], 2)
         self.left_player.symbol = symbols[0]
         self.right_player.symbol = symbols[1]
         
-        # 更新玩家列表中的符號
+        # 第三步：同步更新到玩家列表中（確保引用一致）
         for player in self.players:
             if player.sid == self.left_player.sid:
                 player.symbol = self.left_player.symbol

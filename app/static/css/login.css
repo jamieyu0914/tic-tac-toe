@@ -7,6 +7,12 @@ border-radius: 8px;
 box-shadow: 0 2px 8px #ccc;
 }
 
+.icon-label-text {
+margin: 8px 0 4px 0;
+font-size: 0.95em;
+color: #333;
+}
+
 .icons-row {
 display: flex;
 gap: 8px;

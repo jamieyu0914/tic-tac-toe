@@ -7,28 +7,14 @@ from enum import Enum
 from typing import Optional, List
 
 
-class GameMode(Enum):
-    """遊戲模式枚舉"""
-    PVP = "pvp"           # 玩家對戰
-
-
-class Difficulty(Enum):
-    """AI 難度枚舉"""
-    SIMPLE = "simple"   # 簡單（隨機）
-    NORMAL = "normal"   # 普通（策略）
-    HARD = "hard"       # 困難（Minimax）
-
-
 class Player(Enum):
-    """玩家符號枚舉"""
+    """X 和 O 的枚舉"""
     X = "X"
     O = "O"
 
 
 class GameResult(Enum):
     """遊戲結果枚舉"""
-    X_WIN = "X"
-    O_WIN = "O"
     DRAW = "Draw"
     ONGOING = None
 
@@ -42,37 +28,26 @@ class Game:
     - 遊戲流程控制
     """
     
-    # 勝利條件：所有可能的三連線組合
+    # 所有贏的組合 (橫3直3斜2)
     WIN_CONDITIONS = [
-        [0, 1, 2], [3, 4, 5], [6, 7, 8],  # 橫向
-        [0, 3, 6], [1, 4, 7], [2, 5, 8],  # 縱向
-        [0, 4, 8], [2, 4, 6]              # 對角線
+        [0, 1, 2], [3, 4, 5], [6, 7, 8],  # 橫排
+        [0, 3, 6], [1, 4, 7], [2, 5, 8],  # 直排
+        [0, 4, 8], [2, 4, 6]              # 對角
     ]
     
     def __init__(self):
-        """初始化遊戲狀態"""
-        self.board: List[Optional[str]] = [None] * 9  # 棋盤（9格）
-        self.turn: str = Player.X.value              # 當前回合（X 先手）
-        self.winner: Optional[str] = None             # 勝者
-        self.mode: str = GameMode.PVP.value      # 遊戲模式
-        self.started: bool = False                    # 遊戲是否已開始
+        """初始化 - 設定空白棋盤和遊戲狀態"""
+        self.board: List[Optional[str]] = [None] * 9  # 3x3棋盤用一維陣列存
+        self.turn: str = Player.X.value              # 固定X永遠先手
+        self.winner: Optional[str] = None             # 贏家是誰
+        self.started: bool = False                    # 遊戲開始了沒
     
     def reset(self):
-        """重置遊戲狀態"""
+        """清空棋盤重新開始"""
         self.board = [None] * 9
         self.turn = Player.X.value
         self.winner = None
         self.started = False
-    
-    def set_mode(self, mode: str, difficulty: Optional[str] = None):
-        """
-        設置遊戲模式
-        
-        Args:
-            mode: 'pvp'
-        """
-        self.mode = mode
-        self.reset()
     
     def start(self):
         """開始遊戲"""
@@ -171,7 +146,6 @@ class Game:
             'board': self.board.copy(),    # 棋盤狀態
             'turn': self.turn,             # 紀錄當前回合玩家
             'winner': self.winner,         # None, 'X', 'O', 'Draw'
-            'mode': self.mode,             # 'pvp'
             'started': self.started        # 遊戲是否已開始
         }
     
@@ -185,5 +159,4 @@ class Game:
         self.board = state.get('board', [None] * 9)
         self.turn = state.get('turn', Player.X.value)
         self.winner = state.get('winner')
-        self.mode = state.get('mode')
         self.started = state.get('started', False)

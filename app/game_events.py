@@ -8,7 +8,7 @@ from flask_socketio import emit, join_room, leave_room
 from RoomManager import RoomManager
 import time
 
-# 創建全局房間管理器實例
+# 創建房間管理器實例 (singleton pattern)
 room_manager = RoomManager()
 
 
@@ -24,11 +24,12 @@ def register_game_events(socketio):
     def handle_join_pvp():
         """
         處理玩家加入 PVP 配對
-        流程：
-        1. 檢查是否有正在進行的遊戲
-        2. 尋找等待中的房間
-        3. 若有空房間，加入並開始遊戲
-        4. 若無空房間且沒有進行中的遊戲，創建新房間並等待對手
+        
+        配對邏輯：
+        1. 如果有等待中的房間 → 加入房間，遊戲開始
+        2. 如果沒有等待中的房間：
+           - 若已有遊戲進行中 → 拒絕加入（避免同時多場遊戲）
+           - 若沒有遊戲進行中 → 創建新房間，等待對手加入
         """
         username = session.get('user', '匿名')
         sid = request.sid
