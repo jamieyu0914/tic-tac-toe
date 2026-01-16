@@ -125,7 +125,6 @@ class GameRoom:
     
     def _assign_seats_and_symbols(self):
         """隨機分配玩家座位（左/右）和符號（X/O）"""
-        import random
         
         # 第一步：隨機決定誰坐左邊、誰坐右邊
         shuffled = random.sample(self.players, 2)
@@ -156,9 +155,6 @@ class GameRoom:
         Returns:
             bool: 移動是否成功
         """
-        # 座標轉換為位置 (0-8)
-        position = row * 3 + col
-        
         # 獲取玩家資訊
         player = self.get_player_by_sid(sid)
         if not player:
@@ -168,8 +164,8 @@ class GameRoom:
         if self.game.turn != player.symbol:
             return False
         
-        # 執行移動
-        return self.game.make_move(position, player.symbol) # (下棋位置, 玩家符號 X 或 O)
+        # 執行移動（直接使用座標）
+        return self.game.make_move(row, col, player.symbol)
     
     def reset(self):
         """重置遊戲（新的一回合）"""

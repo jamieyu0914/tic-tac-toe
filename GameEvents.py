@@ -1,5 +1,5 @@
 """
-game_events.py - 遊戲事件處理
+GameEvents.py - 遊戲事件處理
 負責處理 PVP 對戰的遊戲邏輯和房間管理
 """
 
@@ -115,20 +115,12 @@ def register_game_events(socketio):
     @socketio.on('action')
     def handle_action(payload):
         """
-            通用 action 事件分發器，支援前端以 JSON 形式發送 {"action": "..."}
-
-            目前會將下列 action 映射到現有的處理器：
-            - join_pvp
-            - make_move
-            - reset_game
-            - start_new_match
-
-            之後可再擴充其他 action
+        統一處理前端發來的 action 事件，根據 action 名稱轉發到對應函式
         """
+
         if not payload:
             return
 
-        # payload
         action_name = None
         if isinstance(payload, dict):
             action_name = payload.get('action')
@@ -140,7 +132,8 @@ def register_game_events(socketio):
             return handle_join_pvp()
 
         if action_name == 'make_move':
-            # 只接受統一格式：{ action: 'make_move', data: { row: <r>, col: <c> } }
+            # 只接受統一格式：
+            # { action: 'make_move', data: { row: <r>, col: <c> } }
             if isinstance(payload, dict):
                 data = payload.get('data')
                 # 若 data 為 None 或不包含 row/col，則不處理
@@ -181,11 +174,11 @@ def register_game_events(socketio):
         # 執行移動
         room_state = room_manager.make_move(room_id, sid, row, col)
         if room_state:
-            # 只廣播必要的更新資訊
+            # 只廣播必要的更新資訊（使用二維數組座標）
             emit('move_made', {
                 'row': row,
                 'col': col,
-                'symbol': room_state['board'][row * 3 + col],
+                'symbol': room_state['board'][row][col],
                 'turn': room_state['turn']
             }, room=room_id)
             
@@ -214,7 +207,6 @@ def register_game_events(socketio):
                 room.reset()
                 room_state = room.get_state()
                 
-                # 只發送必要的重置資訊
                 emit('game_reset', {
                     'turn': room_state['turn'],
                     'scores': room_state['scores'],
@@ -279,6 +271,9 @@ def get_winning_lines(board):
     """
     獲取獲勝的連線（座標方式）
     
+    Args:
+        board: 二維棋盤 [[None, 'X', ...], [...], [...]]
+    
     Returns:
         list: 獲勝連線的座標列表，例如 [[[0,0], [0,1], [0,2]]]
     """
@@ -295,9 +290,10 @@ def get_winning_lines(board):
     
     winning_lines = []
     for line in win_conditions:
-        positions = [row * 3 + col for row, col in line]
-        if (board[positions[0]] is not None and 
-            board[positions[0]] == board[positions[1]] == board[positions[2]]):
+        # 使用二維棋盤座標檢查
+        pos1, pos2, pos3 = line
+        if (board[pos1[0]][pos1[1]] is not None and 
+            board[pos1[0]][pos1[1]] == board[pos2[0]][pos2[1]] == board[pos3[0]][pos3[1]]):
             winning_lines.append(line)
     
     return winning_lines

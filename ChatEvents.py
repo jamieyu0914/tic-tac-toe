@@ -33,7 +33,7 @@ def register_chat_events(socketio):
             username = session.get('user', '隱藏玩家')
             time_str = datetime.now().strftime('%H:%M:%S')
 
-        # 廣播結構化的 JSON 給所有人
+        # 廣播給所有人
         emit('chat message', {
             'username': username,
             'message': message,

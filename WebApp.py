@@ -1,5 +1,5 @@
 """
-app.py - Flask 應用主程式（類別化版本）
+WebApp.py - Flask 應用主程式（類別化）
 負責路由管理和 HTTP 請求處理
 """
 
@@ -8,10 +8,9 @@ from flask_socketio import SocketIO
 from flask_cors import CORS
 import random
 
-from Environment import Config
+from Config import Config
 from ChatEvents import register_chat_events
 from GameEvents import register_game_events
-from Game import Game
 
 
 class WebApp:
@@ -45,37 +44,7 @@ class WebApp:
         register_game_events(self.SocketIO)
     
     # ============================================================
-    # 輔助函數
-    # ============================================================
-    
-    def get_or_create_game(self) -> Game:
-        """
-        從 session 獲取或創建遊戲實例
-        
-        Returns:
-            Game: 遊戲實例
-        """
-        if 'game_state' not in session:
-            game = Game()
-            session['game_state'] = game.get_state()
-            return game
-        
-        # 從 session 載入遊戲狀態
-        game = Game()
-        game.load_state(session['game_state'])
-        return game
-    
-    def save_game(self, game: Game):
-        """
-        將遊戲狀態保存到 session
-        
-        Args:
-            game: 遊戲實例
-        """
-        session['game_state'] = game.get_state()
-    
-    # ============================================================
-    # 路由處理函數
+    # 路由處理函式
     # ============================================================
     
     def login(self):
@@ -98,7 +67,6 @@ class WebApp:
         if request.method == 'POST':
             username = request.form.get('username', '').strip()
             icon = request.form.get('icon')
-            shown_icons = session.get('login_icons', [])
             
             # 驗證輸入
             if not username:
@@ -107,61 +75,38 @@ class WebApp:
                 error = '使用者名稱不可超過 10 個字元'
             elif not icon:
                 error = '請選擇一個圖示'
-            elif icon not in shown_icons:
+            elif icon not in ICON_POOL:
+                # 檢查圖示是否在合法池中（避免惡意提交）
                 error = '所選圖示無效，請重新選擇'
             else:
                 # 登入成功
-                session.pop('login_icons', None)
                 session['user'] = username
                 session['icon'] = icon
                 return redirect(url_for('home'))
             
-            # 驗證失敗，使用已保存的圖示
-            icons = shown_icons
-        else:
-            # GET 請求：生成新的隨機圖示
+            # 驗證失敗，重新生成隨機圖示
             icons = random.sample(ICON_POOL, 5)
-            session['login_icons'] = icons
+        else:
+            # GET 請求：生成隨機圖示
+            icons = random.sample(ICON_POOL, 5)
         
         return render_template('login.html', error=error, icons=icons)
     
     def home(self):
         """
         首頁處理
-        - GET: 顯示遊戲界面
-        - POST: 處理遊戲操作（開始遊戲）
+        顯示 PVP 遊戲界面
         """
         if 'user' not in session:
             return redirect(url_for('login'))
         
-        # 獲取或創建遊戲實例
-        game_instance = self.get_or_create_game()
-        
-        if request.method == 'POST':
-            action = request.form.get('action')
-            
-            # 開始遊戲
-            if action == 'start_game':
-                game_instance.start()
-                self.save_game(game_instance)
-                return redirect(url_for('home'))
-        
-        # 準備模板數據
-        state = game_instance.get_state()
-        
         return render_template(
             'index.html',
-            board=state['board'],
-            turn=state['turn'],
-            winner=state['winner'],
-            username=session.get('user', '玩家'),
-            started=state['started'],
+            username=session.get('user', '玩家')
         )
     
     def reset(self):
-        """重置遊戲狀態並重定向到遊戲頁面"""
-        # 清除遊戲狀態
-        session.pop('game_state', None)
+        """重定向到遊戲頁面"""
         return redirect(url_for('home'))
     
     def logout(self):
@@ -191,10 +136,3 @@ def StartWebApp():
 
 if __name__ == '__main__':
     StartWebApp()
-
-# ============================================================
-# 供 flask run 指令執行
-# 運行在指定的 SERVER_PORT
-# ============================================================
-# app = WebApp().App
-# app.config['SERVER_PORT'] = Config.FLASK_RUN_PORT

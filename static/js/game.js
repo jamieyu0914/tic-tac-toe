@@ -17,7 +17,7 @@ let rightPlayer = null;
 let scores = { left: 0, right: 0, draw: 0 };
 let roundCount = 0;
 let matchFinished = false;
-let board = [null, null, null, null, null, null, null, null, null];
+let board = [[null, null, null], [null, null, null], [null, null, null]];
 
 /**
  * 初始化遊戲
@@ -129,7 +129,7 @@ function setupPvPEvents() {
     scores = data.scores;
     roundCount = data.round_count;
     gameActive = true;
-    board = [null, null, null, null, null, null, null, null, null];
+    board = [[null, null, null], [null, null, null], [null, null, null]];
 
     // 顯示戰績板和棋盤
     const scoreBoard = document.getElementById("score-board");
@@ -150,8 +150,8 @@ function setupPvPEvents() {
 
   // 移動完成事件
   socket.on("move_made", function (data) {
-    const position = data.row * 3 + data.col;
-    board[position] = data.symbol;
+    // 使用二維數組座標直接訪問
+    board[data.row][data.col] = data.symbol;
     updateCell(data.row, data.col, data.symbol);
     currentTurn = data.turn;
     updateTurnDisplay();
@@ -219,13 +219,8 @@ function setupPvPEvents() {
         updateGameStatus("平手！", "draw");
       } else {
         // 判斷誰贏了
-        let iWon = false;
-        if (
-          (mySide === "left" && data.winner === leftPlayer.symbol) ||
-          (mySide === "right" && data.winner === rightPlayer.symbol)
-        ) {
-          iWon = true;
-        }
+        const mySymbol = mySide === "left" ? leftPlayer.symbol : rightPlayer.symbol;
+        const iWon = (data.winner === mySymbol);
 
         if (iWon) {
           updateGameStatus("你贏了！🎉", "win");
@@ -280,7 +275,7 @@ function setupPvPEvents() {
 
     // 正常開始新回合
     gameActive = true;
-    board = [null, null, null, null, null, null, null, null, null];
+    board = [[null, null, null], [null, null, null], [null, null, null]];
 
     clearBoard();
     clearWinningLines();
@@ -315,7 +310,7 @@ function setupPvPEvents() {
     roundCount = data.round_count;
     matchFinished = data.match_finished;
     gameActive = true;
-    board = [null, null, null, null, null, null, null, null, null];
+    board = [[null, null, null], [null, null, null], [null, null, null]];
 
     // 更新UI
     clearBoard();
@@ -378,7 +373,7 @@ function setupPvPEvents() {
     rightPlayer = null;
     scores = { left: 0, right: 0, draw: 0 };
     roundCount = 0;
-    board = [null, null, null, null, null, null, null, null, null];
+    board = [[null, null, null], [null, null, null], [null, null, null]];
 
     // 自動重新配對（使用 action JSON 格式）
     setTimeout(function () {
@@ -398,7 +393,7 @@ function setupPvPEvents() {
           gameActive &&
           currentTurn === mySymbol &&
           !e.target.disabled &&
-          board[cellIndex] === null
+          board[row][col] === null
         ) {
           socket.emit("make_move", { row: row, col: col });
         }
@@ -479,15 +474,6 @@ function updateCell(row, col, symbol) {
     cells[cellIndex].textContent = symbol || "";
     cells[cellIndex].disabled = symbol !== null;
   }
-}
-
-function updateBoard(boardData) {
-  if (!gameBoard) return;
-  const cells = gameBoard.querySelectorAll(".cell");
-  cells.forEach((cell, index) => {
-    cell.textContent = boardData[index] || "";
-    cell.disabled = boardData[index] !== null;
-  });
 }
 
 /**
