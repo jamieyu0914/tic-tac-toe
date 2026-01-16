@@ -1,6 +1,11 @@
 """
 Game.py - 井字遊戲核心邏輯類別
 負責管理遊戲狀態、勝負判定和遊戲流程控制
+
+【棋盤傳遞方式】本專案使用 (row, col) 座標方式傳遞棋盤資訊
+- board 是 3x3 二維格式：board[row][col]
+- row 和 col 的範圍都是 0-2
+- board[0][0] 表示左上角；board[2][2] 表示右下角
 """
 
 from enum import Enum
@@ -8,16 +13,16 @@ from typing import Optional
 
 
 class Player(Enum):
-    """X 和 O 的枚舉"""
+    """X 和 O 的枚舉 - 玩家符號定義"""
     X = "X"
     O = "O"
 
 
 class GameResult(Enum):
     """遊戲結果枚舉"""
-    X_WIN = "X"
-    O_WIN = "O"
-    DRAW = "Draw"
+    X_WIN = "X"     # X玩家勝利
+    O_WIN = "O"     # O玩家勝利
+    DRAW = "Draw"   # 平局
 
 
 class Game:
@@ -27,6 +32,13 @@ class Game:
     - 遊戲狀態管理（棋盤、輪次、勝負）
     - 勝負判定邏輯
     - 遊戲流程控制
+    
+    【棋盤座標系統】
+    (0,0) | (0,1) | (0,2)
+    ------+-------+------
+    (1,0) | (1,1) | (1,2)
+    ------+-------+------
+    (2,0) | (2,1) | (2,2)
     """
     
     # 所有贏的組合 (橫3直3斜2) - 使用座標 (row, col)
@@ -37,21 +49,38 @@ class Game:
     ]
     
     def __init__(self):
-        """初始化 - 設定空白棋盤和遊戲狀態"""
-        self.board = [[None] * 3 for _ in range(3)]  # 3x3棋盤用二維陣列存
-        self.turn = Player.X.value              # 固定X永遠先手
-        self.winner = None                     # 贏家是誰
-        self.started = False                    # 遊戲開始了沒
-    
-    def reset(self):
-        """清空棋盤，重新開始"""
+        """
+        初始化遊戲
+        設定空白棋盤和遊戲初始狀態
+        """
+        # 3x3 棋盤用二維陣列表示，board[row][col]
+        # None 表示空位，'X' 或 'O' 表示已下的位置
         self.board = [[None] * 3 for _ in range(3)]
+        
+        # 當前輪到哪一方下棋（預設X永遠先手）
         self.turn = Player.X.value
+        
+        # 遊戲勝者 (None=遊戲進行中，'X'/'O'=已決出勝方，'Draw'=平局)
         self.winner = None
+        
+        # 遊戲開始沒
         self.started = False
     
+    def reset(self):
+        """
+        清空棋盤，重新開始新的一回合
+        將所有狀態復原到初始值
+        """
+        self.board = [[None] * 3 for _ in range(3)]
+        self.turn = Player.X.value  # 重置為 X 先手
+        self.winner = None           # 清除勝者資訊
+        self.started = False         # 標記遊戲未開始
+    
     def start(self):
-        """開始遊戲"""
+        """
+        開始遊戲
+        重置棋盤狀態並設定遊戲為已開始
+        """
         self.reset()
         self.started = True
     
@@ -62,12 +91,16 @@ class Game:
         """
         if not self.started:
             return False
+        
+        # 檢查遊戲是否已結束（已有勝者）
         if self.winner is not None:
             return False
         
-        # 驗證座標
+        # 驗證座標合法性 (0 <= row, col <= 2)
         if not (0 <= row < 3 and 0 <= col < 3):
             return False
+        
+        # 檢查目標位置是否已被佔據
         if self.board[row][col] is not None:
             return False
         
@@ -78,7 +111,7 @@ class Game:
         # 檢查勝負
         self.winner = self._check_winner()
         
-        # 切換回合
+        # 如果遊戲尚未結束，切換輪次到另一方
         if self.winner is None:
             self.turn = Player.O.value if self.turn == Player.X.value else Player.X.value
         
@@ -88,17 +121,21 @@ class Game:
         """
         檢查勝負狀態，返回勝者符號 ('X', 'O', 'Draw') 或 None (遊戲繼續)
         """
+        # 逐一檢查每種獲勝條件
         for condition in self.WIN_CONDITIONS:
+            # 從條件中提取三個座標點
             pos1, pos2, pos3 = condition
             r1, c1 = pos1
             r2, c2 = pos2
             r3, c3 = pos3
+            
+            # 檢查這三個點是否同時被同一方佔據
             if (self.board[r1][c1] is not None and 
                 self.board[r1][c1] == self.board[r2][c2] == self.board[r3][c3]):
                 # 直接返回勝者符號（'X' 或 'O'）
                 return self.board[r1][c1]
         
-        # 檢查是否平局（棋盤已滿）
+        # 檢查是否平局（棋盤已滿但沒有勝者）
         if all(self.board[row][col] is not None for row in range(3) for col in range(3)):
             return GameResult.DRAW.value
         

@@ -53,7 +53,7 @@ class WebApp:
         - GET: 顯示登入表單（隨機顯示 5 個圖示）
         - POST: 驗證登入資訊並創建 session
         """
-        # 如果已登入，重定向到首頁
+        # 如果已登入，直接重定向到首頁
         if 'user' in session:
             return redirect(url_for('home'))
         
@@ -118,7 +118,7 @@ class WebApp:
     # 應用運行
     # ============================================================
     
-    def run(self):  
+    def run(self):
         """啟動 Web 應用"""
         self.SocketIO.run(
             self.App, 

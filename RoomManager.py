@@ -13,12 +13,12 @@ class PlayerInfo:
     
     def __init__(self, sid: str, username: str, symbol: str):
         """
-        建立玩家實例，記錄 socket id 和符號
+        建立玩家實例
         
         Args:
-            sid: Socket ID
-            username: 玩家名稱
-            symbol: 玩家符號 ('X' 或 'O')
+            sid : Socket ID - 玩家的 Socket 連線編號，用於識別玩家
+            username : 玩家名稱 - 在遊戲介面上顯示的名字
+            symbol : 玩家符號 - 'X' 或 'O'（初始可能是 'TEMP' 待分配）
         """
         self.sid = sid
         self.username = username
@@ -36,7 +36,10 @@ class PlayerInfo:
 class GameRoom:
     """
     遊戲房間類別
-    管理一個房間內的遊戲狀態和玩家資訊
+    管理一個房間內的：
+    - 遊戲狀態（棋盤、輪次、勝者）
+    - 玩家資訊（座位、符號分配）
+    - 比賽統計（5戰3勝的戰績）
     """
     
     def __init__(self, room_id: str, creator_sid: str, creator_username: str):
@@ -44,52 +47,59 @@ class GameRoom:
         初始化遊戲房間
         
         Args:
-            room_id: 房間 ID
-            creator_sid: 創建者 Socket ID
-            creator_username: 創建者名稱
+            room_id : 房間 ID - 唯一識別房間的編號
+            creator_sid: 創建者 Socket ID - 第一位玩家
+            creator_username : 創建者名稱 - 第一位玩家的名字
         """
         self.room_id = room_id
         self.game = Game()  # 遊戲實例
-        self.players: List[PlayerInfo] = [] # 玩家列表
+        self.players: List[PlayerInfo] = [] # 玩家列表，最多兩位
         self.waiting = True  # 等待第二位玩家
         
-        # 5戰3勝制度
-        self.scores = {'left': 0, 'right': 0, 'draw': 0}  # 戰績統計
-        self.round_count = 0  # 當前回合數
-        self.match_finished = False  # 比賽是否結束
-        self.current_first_player = 'left'  # 當前先手玩家 ('left' or 'right')
+        # 【重要】5戰3勝制度的統計資料
+        self.scores = {
+            'left': 0,      # 左邊玩家贏的局數
+            'right': 0,     # 右邊玩家贏的局數
+            'draw': 0       # 平局的局數
+        }
+        self.round_count = 0          # 當前進行到第幾回合（0-4，總共5回合）
+        self.match_finished = False   # 比賽是否已完全結束（5戰結束或某方先達3勝，或達到5局未分出勝負。）
+        self.current_first_player = 'left'  # 當前回合的先手玩家 ('left' 或 'right')
         
-        # 座位和符號（等第二位玩家加入後隨機分配）
-        self.left_player = None
-        self.right_player = None
+        # 座位和符號分配（會由_assign_seats_and_symbols() 隨機決定）
+        self.left_player = None   # 坐在左邊的玩家
+        self.right_player = None  # 坐在右邊的玩家
         
-        # 先用臨時符號創建第一位玩家
+        # 先用臨時符號創建第一位玩家，等第二位加入後再隨機分配
         first_player = PlayerInfo(creator_sid, creator_username, 'TEMP')
         self.players.append(first_player)
     
     def add_player(self, sid: str, username: str) -> bool:
         """
         添加第二位玩家到房間
+        當第二位玩家加入後，自動隨機分配座位和符號，並開始遊戲
         
         Args:
             sid: 玩家 Socket ID
             username: 玩家名稱
             
         Returns:
-            bool: 是否成功添加
+            bool: True=成功添加，False=房間已滿（已有2位玩家）
         """
+        # 檢查房間是否已滿
         if len(self.players) >= 2:
             return False
         
-        # 第二位玩家先用臨時符號
+        # 用臨時符號創建第二位玩家
         second_player = PlayerInfo(sid, username, 'TEMP')
         self.players.append(second_player)
-        self.waiting = False # 已有兩位玩家，停止等待
+        self.waiting = False  # 停止等待，因為已有兩位玩家
         
-        # 現在兩位玩家都到齊了，隨機分配座位和符號
+        # 兩位玩家都到齊了，隨機分配座位（左/右）和符號（X/O）
         self._assign_seats_and_symbols()
         
-        self.game.start()  # 開始遊戲
+        # 開始遊戲
+        self.game.start()
         return True
     
     def remove_player(self, sid: str) -> bool:
@@ -116,7 +126,7 @@ class GameRoom:
             sid: Socket ID
             
         Returns:
-            Optional[PlayerInfo]: 玩家資訊，若不存在則返回 None
+            Optional[PlayerInfo]: 找到則返回玩家資訊，否則返回 None
         """
         for player in self.players:
             if player.sid == sid:
@@ -124,19 +134,26 @@ class GameRoom:
         return None
     
     def _assign_seats_and_symbols(self):
-        """隨機分配玩家座位（左/右）和符號（X/O）"""
+        """
+        隨機分配玩家座位和符號
         
-        # 第一步：隨機決定誰坐左邊、誰坐右邊
+        分配邏輯：
+        1. 隨機決定誰坐左邊、誰坐右邊
+        2. 隨機決定 X 和 O 符號分配給左右玩家
+        3. 更新玩家列表中的符號值，確保引用一致
+        """
+        # 步驟1：隨機打亂玩家順序，決定座位
         shuffled = random.sample(self.players, 2)
-        self.left_player = shuffled[0]
-        self.right_player = shuffled[1]
+        self.left_player = shuffled[0]   # 隨機選中的玩家坐左邊
+        self.right_player = shuffled[1]  # 另一位玩家坐右邊
         
-        # 第二步：隨機決定符號分配給左右玩家
+        # 步驟2：隨機決定符號分配
         symbols = random.sample([Player.X.value, Player.O.value], 2)
-        self.left_player.symbol = symbols[0]
-        self.right_player.symbol = symbols[1]
+        self.left_player.symbol = symbols[0]   # 左邊玩家獲得第一個符號
+        self.right_player.symbol = symbols[1]  # 右邊玩家獲得第二個符號
         
-        # 第三步：同步更新到玩家列表中（確保引用一致）
+        # 步驟3：同步更新到玩家列表
+        # 確保 self.players 中的符號與 left_player 和 right_player 的值一致
         for player in self.players:
             if player.sid == self.left_player.sid:
                 player.symbol = self.left_player.symbol
@@ -195,7 +212,7 @@ class GameRoom:
         else:
             first_symbol = self.right_player.symbol
         
-        # 重置棋盤並設定先手
+        # 重置棋盤和遊戲狀態
         self.game.reset()
         self.game.turn = first_symbol
         self.game.started = True
@@ -203,19 +220,21 @@ class GameRoom:
     def check_round_end(self) -> bool:
         """檢查回合是否結束並更新戰績"""
         if self.game.winner:
+            # 根據勝者類型統計分數
             if self.game.winner == 'Draw':
-                self.scores['draw'] += 1
+                self.scores['draw'] += 1  # 平局次數
             elif self.game.winner == self.left_player.symbol:
-                self.scores['left'] += 1
+                self.scores['left'] += 1  # 左邊玩家勝場數
             elif self.game.winner == self.right_player.symbol:
-                self.scores['right'] += 1
+                self.scores['right'] += 1  # 右邊玩家勝場數
             
-            # 檢查是否達到比賽結束條件
+            # 檢查比賽是否已結束
             if self.scores['left'] >= 3 or self.scores['right'] >= 3:
-                # 有人達到3勝
+                # 某方已達 3 勝，比賽結束
                 self.match_finished = True
             elif self.round_count >= 4:
-                # 已經打完第5回合（round_count 從0開始，第5回合時 round_count = 4）
+                # 已完成第 5 回合（round_count 從 0 開始計算）
+                # 第1回合結束時 round_count=0，第5回合結束時 round_count=4
                 self.match_finished = True
             
             return True
@@ -226,7 +245,7 @@ class GameRoom:
         獲取房間狀態
         
         Returns:
-            dict: 房間狀態字典
+            dict: 包含房間、玩家、遊戲狀態
         """
         return {
             'room_id': self.room_id,
@@ -236,7 +255,7 @@ class GameRoom:
             'winner': self.game.winner,
             'waiting': self.waiting,
             'started': self.game.started,
-            'scores': self.scores,
+            'scores': self.scores,  # 5戰3勝的戰績統計
             'round_count': self.round_count,
             'match_finished': self.match_finished,
             'current_first_player': self.current_first_player,

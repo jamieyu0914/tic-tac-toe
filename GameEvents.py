@@ -1,6 +1,13 @@
 """
 GameEvents.py - 遊戲事件處理
 負責處理 PVP 對戰的遊戲邏輯和房間管理
+
+事件流程
+1. join_pvp - 玩家加入配對
+2. make_move - 玩家下棋（使用座標）
+3. move_made - 廣播棋盤更新
+4. round_end - 遊戲回合結束
+5. game_reset - 開始新回合
 """
 
 from flask import session, request
@@ -8,13 +15,14 @@ from flask_socketio import emit, join_room, leave_room
 from RoomManager import RoomManager
 from datetime import datetime
 
-# 創建房間管理器實例 (singleton pattern)
+# 創建房間管理器實例（Singleton 模式）
+# 全域只有一個 RoomManager 實例，管理所有房間
 room_manager = RoomManager()
 
 
 def register_game_events(socketio):
     """
-    註冊遊戲相關的 Socket.IO 事件
+    註冊遊戲相關的 Socket.IO 事件監聽
     
     Args:
         socketio: SocketIO 實例
