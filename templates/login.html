@@ -9,11 +9,14 @@
   </head>
   <body>
     {% include 'navbar.html' %}
+    
     <div class="login-container">
       <h2>登入 Tic-Tac-Toe</h2>
+      
       {% if error %}
       <div class="error">{{ error }}</div>
       {% endif %}
+      
       <form method="post">
         <input
           type="text"
@@ -24,9 +27,8 @@
           value="{{ request.form.username if request.form.username }}"
         />
 
-        <div style="margin: 8px 0 4px 0; font-size: 0.95em; color: #333">
-          請選擇一個圖示作為你的身份：
-        </div>
+        <div class="icon-label-text">請選擇一個圖示作為你的身份：</div>
+        
         <div class="icons-row">
           {% for ic in icons %}
           <label class="icon-label">
@@ -40,23 +42,7 @@
         <button type="submit">登入</button>
       </form>
     </div>
-    <script>
-      // 功能: 高亮顯示選中的圖示
-      document.addEventListener("click", function (e) {
-        if (e.target.closest(".icon-label")) {
-          document
-            .querySelectorAll(".icon-label")
-            .forEach((l) => l.classList.remove("selected")); //移除藍色邊框效果
-          e.target.closest(".icon-label").classList.add("selected"); //選中的標籤加上藍邊框效果
-        }
-      });
-      // 頁面載入時高亮已選中的圖示
-      document.addEventListener("DOMContentLoaded", function () {
-        const checked = document.querySelector('input[name="icon"]:checked');
-        if (checked) {
-          checked.closest(".icon-label").classList.add("selected");
-        }
-      });
-    </script>
+    
+    <script src="{{ url_for('static', filename='js/login.js') }}"></script>
   </body>
 </html>
