@@ -4,51 +4,60 @@
 
 ## 單元測試
 
-### Game.py 功能測試
-
-測試 Game.py 的所有核心功能，包括：
-
-- 初始化和重置
-- 遊戲開始
-- 移動驗證（座標方式）
-- 勝負判定（所有可能的連線）
-- 平局判定
-- 狀態管理
-- 邊界條件
-
-**執行測試**:
+**執行單元測試**:
 
 ```bash
 # 執行所有測試
-python -m unittest discover tests
+python -m unittest
 
 # 執行特定測試檔案
-python -m unittest tests.test_game
+python -m unittest tests/test_game.py
 
 # 顯示詳細輸出
-python -m unittest tests.test_game -v
+python -m unittest -v
 ```
 
-**測試結果範例**:
+## 覆蓋率測試
+
+**執行覆蓋率測試**:
+
+```bash
+# 執行 coverage 測試
+coverage run -m unittest
+
+# 列出 coverage 報告
+coverage report -m
+```
+
+**覆蓋率測試與報告範例**:
 
 ```
-Ran 25 tests in 0.005s
+...............................................................................................................................................
+----------------------------------------------------------------------
+Ran 143 tests in 0.222s
+
 OK
-
-======================================================================
-測試摘要
-======================================================================
-總測試數: 25
-成功: 25
-失敗: 0
-錯誤: 0
-======================================================================
 ```
+
+```
+Name             Stmts   Miss  Cover   Missing
+----------------------------------------------
+ChatEvents.py       14      0   100%
+Config.py            8      0   100%
+Game.py             50      0   100%
+GameEvents.py      122      0   100%
+RoomManager.py     161      0   100%
+WebApp.py           50      0   100%
+----------------------------------------------
+TOTAL              405      0   100%
+```
+
 
 ## 測試覆蓋範圍
 
 ### 已測試功能
 
+#### Game.py
 - ✅ 遊戲初始化（3x3 棋盤，X 先手）
 - ✅ 棋盤重置
 - ✅ 遊戲開始/結束狀態
@@ -61,43 +70,67 @@ OK
 - ✅ 回合切換（X ↔ O）
 - ✅ 邊界條件處理
 
-### 測試檔案位置
+#### RoomManager.py
+- ✅ 房間創建/加入/離開/刪除
+- ✅ 玩家與房間映射
+- ✅ 房間狀態查詢（等待/進行中/活躍遊戲數）
+- ✅ 房間重置、回合結束、比賽結束條件
+- ✅ 玩家座位與符號隨機分配
+- ✅ 例外與邊界條件（不存在房間、滿員、重複加入等）
+
+#### GameEvents.py
+- ✅ Socket.IO 事件註冊與處理
+- ✅ PVP 配對與房間分配
+- ✅ 行動事件（make_move, reset_game, start_new_match）
+- ✅ 勝利線判斷與 round_end 廣播
+- ✅ 斷線處理
+- ✅ 所有錯誤分支與異常情境
+
+#### WebApp.py
+- ✅ Flask 路由註冊
+- ✅ 首頁、登入、遊戲頁面渲染
+- ✅ Session 管理
+- ✅ 靜態檔案與模板載入
+- ✅ 應用啟動流程（run, StartWebApp）
+- ✅ 例外與重導處理（未登入、登出、reset）
+
+#### Config.py
+- ✅ 設定參數載入與覆蓋
+- ✅ 預設值與例外處理
+
+#### ChatEvents.py
+- ✅ 聊天訊息事件處理
+- ✅ 系統訊息廣播
+
+
+### 測試檔案所在位置
 
 ```
 tests/
-└── test_game.py    # Game.py 的 25 個單元測試
+├── test_game.py           # Game.py 遊戲邏輯測試
+├── test_room_manager.py   # RoomManager.py 與房間/玩家管理
+├── test_game_events.py    # GameEvents.py SocketIO 事件與整合
+├── test_webapp.py         # WebApp.py 路由與 session 測試
+├── test_config.py         # Config.py 設定檔測試
+├── test_chat_events.py    # ChatEvents.py 聊天事件測試
 ```
-python test_structure.py
+
+### 目前使用 `# pragma: no cover` 標記忽略覆蓋率的區塊
+
+專案中部分無法自動測試或不屬於邏輯核心的程式碼，會加上 `# pragma: no cover` 來讓 coverage 工具忽略這些區塊。
+
+```python
+# 井字遊戲邏輯測試區塊
+if __name__ == '__main__':  # pragma: no cover
+    """測試井字遊戲邏輯"""
+
+# Flask 應用啟動區塊
+if __name__ == '__main__':  # pragma: no cover
+    StartWebApp()
 ```
 
-**測試內容**:
+上述區塊通常不影響邏輯正確性，且難以自動測試，因此建議加註 pragma: no cover。
 
-- 檢查 WebApp 類別是否存在
-- 驗證所有必要方法是否實現
-- 確認模組級別函數存在
-
-## 測試覆蓋率
-
-### Game.py 測試覆蓋
-
-| 功能模塊     | 測試數量 | 狀態  |
-| ------------ | -------- | ----- |
-| 初始化測試   | 2        | ✓     |
-| 遊戲開始測試 | 1        | ✓     |
-| 移動測試     | 5        | ✓     |
-| 勝負判定測試 | 10       | ✓     |
-| 邊界條件測試 | 7        | ✓     |
-| **總計**     | **25**   | **✓** |
-
-### 測試的勝利條件
-
-測試涵蓋所有可能的獲勝方式：
-
-- ✓ 橫向獲勝（3 種：第一、二、三行）
-- ✓ 縱向獲勝（3 種：第一、二、三列）
-- ✓ 對角線獲勝（2 種：主對角線、副對角線）
-- ✓ 平局情況
-- ✓ X 和 O 都能獲勝
 
 ## 手動測試
 
@@ -137,7 +170,7 @@ python test_structure.py
    - 驗證另一個玩家收到離開通知
    - 確認自動重新配對
 
-## 持續整合建議
+## 持續整合
 
 如要設置 CI/CD，可使用以下配置：
 
@@ -164,31 +197,9 @@ jobs:
         run: |
           pip install -r requirements.txt
 
-      - name: Run Game tests
+      - name: Run coverage tests
         run: |
           cd app/tests
-          python test_game.py
-
-      - name: Verify structure
-        run: |
-          cd app
-          python test_structure.py
+          coverage run -m unittest
+          coverage report -m
 ```
-
-## 測試最佳實踐
-
-1. **每次修改後都執行測試** - 確保沒有破壞現有功能
-2. **添加新功能時增加測試** - 維持測試覆蓋率
-3. **修復 bug 時先寫測試** - 確保 bug 不會再次出現
-4. **定期檢查測試是否過時** - 隨著需求變化更新測試
-
-## 已知限制
-
-目前的測試涵蓋 Game.py 的核心邏輯，但以下部分尚未完全測試：
-
-- RoomManager.py 的房間管理邏輯
-- Socket.IO 事件處理
-- Session 管理
-- 前端 JavaScript 邏輯
-
-建議未來添加這些部分的測試以提高整體測試覆蓋率。

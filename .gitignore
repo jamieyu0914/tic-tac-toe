@@ -26,3 +26,7 @@ Thumbs.db
 
 # Others
 *.log
+
+# Coverage reports
+.coverage
+.coverage.*

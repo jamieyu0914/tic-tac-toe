@@ -106,7 +106,7 @@ class Game:
         return None
 
 
-if __name__ == '__main__':
+if __name__ == '__main__':  # pragma: no cover
     """測試井字遊戲邏輯"""
     
     print("===== 井字遊戲測試 =====\n")

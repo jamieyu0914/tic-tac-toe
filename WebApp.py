@@ -118,7 +118,7 @@ class WebApp:
     # 應用運行
     # ============================================================
     
-    def run(self):
+    def run(self):  
         """啟動 Web 應用"""
         self.SocketIO.run(
             self.App, 
@@ -134,5 +134,5 @@ def StartWebApp():
     webapp.run()
 
 
-if __name__ == '__main__':
+if __name__ == '__main__':  # pragma: no cover
     StartWebApp()
