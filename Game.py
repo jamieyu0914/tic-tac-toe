@@ -4,24 +4,11 @@ Game.py - 井字遊戲核心邏輯類別
 """
 
 from enum import Enum
-from typing import Optional, List
-
-
-class GameMode(Enum):
-    """遊戲模式枚舉"""
-    COMPUTER = "computer"  # 人機對戰
-    PVP = "pvp"           # 玩家對戰
-
-
-class Difficulty(Enum):
-    """AI 難度枚舉"""
-    SIMPLE = "simple"   # 簡單（隨機）
-    NORMAL = "normal"   # 普通（策略）
-    HARD = "hard"       # 困難（Minimax）
+from typing import Optional
 
 
 class Player(Enum):
-    """玩家符號枚舉"""
+    """X 和 O 的枚舉"""
     X = "X"
     O = "O"
 
@@ -31,7 +18,6 @@ class GameResult(Enum):
     X_WIN = "X"
     O_WIN = "O"
     DRAW = "Draw"
-    ONGOING = None
 
 
 class Game:
@@ -43,73 +29,51 @@ class Game:
     - 遊戲流程控制
     """
     
-    # 勝利條件：所有可能的三連線組合
+    # 所有贏的組合 (橫3直3斜2) - 使用座標 (row, col)
     WIN_CONDITIONS = [
-        [0, 1, 2], [3, 4, 5], [6, 7, 8],  # 橫向
-        [0, 3, 6], [1, 4, 7], [2, 5, 8],  # 縱向
-        [0, 4, 8], [2, 4, 6]              # 對角線
+        [(0, 0), (0, 1), (0, 2)], [(1, 0), (1, 1), (1, 2)], [(2, 0), (2, 1), (2, 2)],  # 橫排
+        [(0, 0), (1, 0), (2, 0)], [(0, 1), (1, 1), (2, 1)], [(0, 2), (1, 2), (2, 2)],  # 直排
+        [(0, 0), (1, 1), (2, 2)], [(0, 2), (1, 1), (2, 0)]                            # 對角
     ]
     
     def __init__(self):
-        """初始化遊戲狀態"""
-        self.board: List[Optional[str]] = [None] * 9  # 棋盤（9格）
-        self.turn: str = Player.X.value              # 當前回合（X 先手）
-        self.winner: Optional[str] = None             # 勝者
-        self.mode: str = GameMode.COMPUTER.value      # 遊戲模式
-        self.difficulty: str = Difficulty.NORMAL.value # AI 難度
-        self.started: bool = False                    # 遊戲是否已開始
+        """初始化 - 設定空白棋盤和遊戲狀態"""
+        self.board = [[None] * 3 for _ in range(3)]  # 3x3棋盤用二維陣列存
+        self.turn = Player.X.value              # 固定X永遠先手
+        self.winner = None                     # 贏家是誰
+        self.started = False                    # 遊戲開始了沒
     
     def reset(self):
-        """重置遊戲狀態"""
-        self.board = [None] * 9
+        """清空棋盤，重新開始"""
+        self.board = [[None] * 3 for _ in range(3)]
         self.turn = Player.X.value
         self.winner = None
         self.started = False
-    
-    def set_mode(self, mode: str, difficulty: Optional[str] = None):
-        """
-        設置遊戲模式
-        
-        Args:
-            mode: 遊戲模式 ('computer' 或 'pvp')
-            difficulty: AI 難度（僅在 computer 模式下有效）
-        """
-        self.mode = mode
-        if mode == GameMode.COMPUTER.value and difficulty:
-            self.difficulty = difficulty
-        self.reset()
     
     def start(self):
         """開始遊戲"""
         self.reset()
         self.started = True
     
-    def make_move(self, position: int, player: Optional[str] = None) -> bool:
+    def make_move(self, row: int, col: int, player=None) -> bool:
         """
-        執行移動
-        
-        Args:
-            position: 棋盤位置 (0-8)
-            player: 玩家符號（若為 None 則使用當前回合玩家）
-            
-        Returns:
-            bool: 移動是否成功
+        下棋 
+        (可用 player 強制指定 X 或 O，不指定則按回合)
         """
-        # 驗證遊戲狀態
         if not self.started:
             return False
         if self.winner is not None:
             return False
         
-        # 驗證位置
-        if not (0 <= position < 9):
+        # 驗證座標
+        if not (0 <= row < 3 and 0 <= col < 3):
             return False
-        if self.board[position] is not None:
+        if self.board[row][col] is not None:
             return False
         
         # 執行移動
         move_player = player if player else self.turn
-        self.board[position] = move_player #下棋
+        self.board[row][col] = move_player  # 下棋
         
         # 檢查勝負
         self.winner = self._check_winner()
@@ -120,77 +84,112 @@ class Game:
         
         return True
     
-    def _check_winner(self) -> Optional[str]:
+    def _check_winner(self):
         """
-        檢查勝負狀態
-        
-        Returns:
-            Optional[str]: 勝者符號（'X', 'O', 'Draw'）或 None（遊戲繼續）
+        檢查勝負狀態，返回勝者符號 ('X', 'O', 'Draw') 或 None (遊戲繼續)
         """
-        # 檢查所有勝利條件
         for condition in self.WIN_CONDITIONS:
-            a, b, c = condition
-            if (self.board[a] is not None and 
-                self.board[a] == self.board[b] == self.board[c]):
-                return self.board[a]
+            pos1, pos2, pos3 = condition
+            r1, c1 = pos1
+            r2, c2 = pos2
+            r3, c3 = pos3
+            if (self.board[r1][c1] is not None and 
+                self.board[r1][c1] == self.board[r2][c2] == self.board[r3][c3]):
+                # 直接返回勝者符號（'X' 或 'O'）
+                return self.board[r1][c1]
         
         # 檢查是否平局（棋盤已滿）
-        if all(cell is not None for cell in self.board):
+        if all(self.board[row][col] is not None for row in range(3) for col in range(3)):
             return GameResult.DRAW.value
         
         # 遊戲繼續
         return None
+
+
+if __name__ == '__main__':
+    """測試井字遊戲邏輯"""
     
-    def get_available_moves(self) -> List[int]:
-        """
-        獲取所有可用的移動位置
-        
-        Returns:
-            List[int]: 空位的索引列表
-        """
-        return [i for i, cell in enumerate(self.board) if cell is None]
+    print("===== 井字遊戲測試 =====\n")
     
-    def is_valid_move(self, position: int) -> bool:
-        """
-        檢查移動是否有效
-        
-        Args:
-            position: 棋盤位置
-            
-        Returns:
-            bool: 移動是否有效
-        """
-        return (0 <= position < 9 and 
-                self.board[position] is None and 
-                self.winner is None and
-                self.started)
+    # 測試1: X獲勝（橫排）
+    print("測試1: X獲勝（第一橫排）")
+    game1 = Game()
+    game1.start()
+    moves1 = [(0, 0), (1, 0), (0, 1), (1, 1), (0, 2)]  # X贏在第一橫排
+    for row, col in moves1:
+        current_player = game1.turn  # 記錄當前玩家
+        game1.make_move(row, col)
+        status = '遊戲結束' if game1.winner else f"輪到 {game1.turn}"
+        print(f"  {current_player} 下在 ({row}, {col}) -> {status}")
+    print(f"  結果: {game1.winner}")
+    print(f"  預期: {GameResult.X_WIN.value}")
+    print(f"  測試{'通過' if game1.winner == GameResult.X_WIN.value else '失敗'}！\n")
     
-    def get_state(self) -> dict:
-        """
-        獲取當前遊戲狀態
-        
-        Returns:
-            dict: 包含完整遊戲狀態的字典
-        """
-        return {
-            'board': self.board.copy(),    # 棋盤狀態
-            'turn': self.turn,             # 紀錄當前回合玩家
-            'winner': self.winner,         # None, 'X', 'O', 'Draw'
-            'mode': self.mode,             # 'computer' 或 'pvp'
-            'difficulty': self.difficulty, # AI 難度
-            'started': self.started        # 遊戲是否已開始
-        }
+    # 測試2: O獲勝（直排）
+    print("測試2: O獲勝（第一直排）")
+    game2 = Game()
+    game2.start()
+    moves2 = [(0, 1), (0, 0), (1, 1), (1, 0), (0, 2), (2, 0)]  # O贏在第一直排
+    for row, col in moves2:
+        current_player = game2.turn  # 記錄當前玩家
+        game2.make_move(row, col)
+        status = '遊戲結束' if game2.winner else f"輪到 {game2.turn}"
+        print(f"  {current_player} 下在 ({row}, {col}) -> {status}")
+    print(f"  結果: {game2.winner}")
+    print(f"  預期: {GameResult.O_WIN.value}")
+    print(f"  測試{'通過' if game2.winner == GameResult.O_WIN.value else '失敗'}！\n")
     
-    def load_state(self, state: dict):
-        """
-        載入遊戲狀態
-        
-        Args:
-            state: 遊戲狀態字典
-        """
-        self.board = state.get('board', [None] * 9)
-        self.turn = state.get('turn', Player.X.value)
-        self.winner = state.get('winner')
-        self.mode = state.get('mode', GameMode.COMPUTER.value)
-        self.difficulty = state.get('difficulty', Difficulty.NORMAL.value)
-        self.started = state.get('started', False)
+    # 測試3: 平局
+    print("測試3: 平局")
+    game3 = Game()
+    game3.start()
+    # X O X
+    # O X X
+    # O X O
+    moves3 = [(0, 0), (0, 1), (0, 2), (1, 0), (1, 1), (2, 0), (1, 2), (2, 2), (2, 1)]
+    for row, col in moves3:
+        current_player = game3.turn  # 記錄當前玩家
+        game3.make_move(row, col)
+        status = '遊戲結束' if game3.winner else f"輪到 {game3.turn}"
+        print(f"  {current_player} 下在 ({row}, {col}) -> {status}")
+    print(f"  結果: {game3.winner}")
+    print(f"  預期: {GameResult.DRAW.value}")
+    print(f"  測試{'通過' if game3.winner == GameResult.DRAW.value else '失敗'}！\n")
+    
+    # 顯示平局的最終棋盤
+    print("  平局棋盤:")
+    for i, row in enumerate(game3.board):
+        row_str = " | ".join([cell if cell else " " for cell in row])
+        print(f"    第{i}行: {row_str}")
+    
+    # 測試4: X獲勝（對角線）
+    print("測試4: X獲勝（對角線）")
+    game4 = Game()
+    game4.start()
+    moves4 = [(0, 0), (0, 1), (1, 1), (0, 2), (2, 2)]  # X贏在對角線
+    for row, col in moves4:
+        current_player = game4.turn  # 記錄當前玩家
+        game4.make_move(row, col)
+        status = '遊戲結束' if game4.winner else f"輪到 {game4.turn}"
+        print(f"  {current_player} 下在 ({row}, {col}) -> {status}")
+    print(f"  結果: {game4.winner}")
+    print(f"  預期: {GameResult.X_WIN.value}")
+    print(f"  測試{'通過' if game4.winner == GameResult.X_WIN.value else '失敗'}！\n")
+    
+    # 測試5: 棋盤顯示
+    print("測試5: 棋盤顯示（測試4的最終棋盤）")
+    print("\n  座標系統說明:")
+    print("    (0,0) | (0,1) | (0,2)")
+    print("    ------+-------+------")
+    print("    (1,0) | (1,1) | (1,2)")
+    print("    ------+-------+------")
+    print("    (2,0) | (2,1) | (2,2)")
+    print("\n  實際棋盤:")
+    for i, row in enumerate(game4.board):
+        row_str = " | ".join([cell if cell else " " for cell in row])
+        print(f"  第{i}行: {row_str}")
+        if i < 2:
+            print("        ---------")
+    
+    print("\n===== 所有測試完成 =====")
+

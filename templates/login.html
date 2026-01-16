@@ -3,82 +3,20 @@
   <head>
     <meta charset="UTF-8" />
     <title>登入 - Tic-Tac-Toe</title>
-    <style>
-      body {
-        font-family: Arial, sans-serif;
-        background: #f7f7f7;
-      }
-      .login-container {
-        width: 360px;
-        margin: 80px auto;
-        background: #fff;
-        padding: 30px 25px;
-        border-radius: 8px;
-        box-shadow: 0 2px 8px #ccc;
-      }
-      h2 {
-        margin-bottom: 12px;
-      }
-      input[type="text"] {
-        width: 338px;
-        padding: 10px;
-        margin: 6px 0 12px 0;
-        border: 1px solid #ccc;
-        border-radius: 4px;
-      }
-      button {
-        width: 100%;
-        padding: 10px;
-        background: #007bff;
-        color: #fff;
-        border: none;
-        border-radius: 4px;
-        font-size: 1em;
-        cursor: pointer;
-      }
-      .error {
-        color: #d00;
-        margin-bottom: 10px;
-      }
-
-      .icons-row {
-        display: flex;
-        gap: 8px;
-        margin: 8px 0 18px 0;
-        justify-content: space-between;
-      }
-      .icon-label {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 56px;
-        height: 56px;
-        border-radius: 8px;
-        background: #f3f3f3;
-        border: 2px solid transparent;
-        cursor: pointer;
-        transition: box-shadow 0.08s, border-color 0.08s;
-      }
-      .icon-label input {
-        display: none;
-      }
-      .icon-label .icon {
-        font-size: 1.6em;
-      }
-      .icon-label.selected {
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
-        border-color: #007bff;
-        background: #fff;
-      }
-    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/navbar.css') }}">
   </head>
   <body>
     {% include 'navbar.html' %}
+    
     <div class="login-container">
       <h2>登入 Tic-Tac-Toe</h2>
+      
       {% if error %}
       <div class="error">{{ error }}</div>
       {% endif %}
+      
       <form method="post">
         <input
           type="text"
@@ -86,15 +24,16 @@
           placeholder="使用者名稱"
           required
           autofocus
+          value="{{ request.form.username if request.form.username }}"
         />
 
-        <div style="margin: 8px 0 4px 0; font-size: 0.95em; color: #333">
-          請選擇一個圖示作為你的身份：
-        </div>
+        <div class="icon-label-text">請選擇一個圖示作為你的身份：</div>
+        
         <div class="icons-row">
           {% for ic in icons %}
           <label class="icon-label">
-            <input type="radio" name="icon" value="{{ ic }}" />
+            <input type="radio" name="icon" value="{{ ic }}"
+              {% if ic == selected_icon %}checked{% endif %} />
             <span class="icon">{{ ic }}</span>
           </label>
           {% endfor %}
@@ -103,16 +42,7 @@
         <button type="submit">登入</button>
       </form>
     </div>
-    <script>
-      // 功能: 高亮顯示選中的圖示
-      document.addEventListener("click", function (e) {
-        if (e.target.closest(".icon-label")) {
-          document
-            .querySelectorAll(".icon-label")
-            .forEach((l) => l.classList.remove("selected")); //移除藍色邊框效果
-          e.target.closest(".icon-label").classList.add("selected"); //選中的標籤加上藍邊框效果
-        }
-      });
-    </script>
+    
+    <script src="{{ url_for('static', filename='js/login.js') }}"></script>
   </body>
 </html>
